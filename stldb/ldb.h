@@ -29,14 +29,18 @@ class ldb
 	using const_reverse_iterator  = std::reverse_iterator<const_iterator>;
 
 	// Reading
-	template<class... Args> const_iterator end(Args&&... args) const;
-	template<class... Args> const_iterator begin(Args&&... args) const;
-	template<class... Args> const_iterator find(const key_type &key, Args&&... args) const;
+	template<class... Args> const_iterator cend(Args&&... args) const;
+	template<class... Args> const_iterator cbegin(Args&&... args) const;
+	template<class... Args> const_iterator cfind(const key_type &key, Args&&... args) const;
+
+	template<class... Args> iterator end(Args&&... args);
+	template<class... Args> iterator begin(Args&&... args);
+	template<class... Args> iterator find(const key_type &key, Args&&... args);
 
 	// Utils
 	size_t count() const;
-	bool exists(const key_type &key) const;
-	bool exists(const key_type &key, const bool &cache = false);
+	size_t count(const key_type &key) const;
+	size_t count(const key_type &key, const bool &cache = false);
 
 	// Writing
 	void set(const key_type &key, const mapped_type &value, const bool &sync = false);
@@ -88,21 +92,19 @@ void ldb<Key,T>::set(const key_type &key,
 
 template<class Key,
          class T>
-bool ldb<Key,T>::exists(const key_type &key,
-                        const bool &cache)
+size_t ldb<Key,T>::count(const key_type &key,
+                         const bool &cache)
 {
-	const auto it = find(key);
-	return bool(it);
+	return bool(cfind(key,false,cache));
 }
 
 
 template<class Key,
          class T>
-bool ldb<Key,T>::exists(const key_type &key)
+size_t ldb<Key,T>::count(const key_type &key)
 const
 {
-	const auto it = find(key);
-	return bool(it);
+	return bool(cfind(key));
 }
 
 
@@ -112,8 +114,8 @@ size_t ldb<Key,T>::count()
 const
 {
 	size_t ret = 0;
-	const auto end = this->end();
-	for(auto it = begin(); it != end; ++it)
+	const auto cend = this->cend();
+	for(auto it = cbegin(); it != cend; ++it)
 		ret++;
 
 	return ret;
@@ -123,7 +125,45 @@ const
 template<class Key,
          class T>
 template<class... Args>
-typename ldb<Key,T>::const_iterator ldb<Key,T>::end(Args&&... args)
+typename ldb<Key,T>::iterator ldb<Key,T>::end(Args&&... args)
+{
+	iterator it(db.get(),std::forward<Args>(args)...);
+	it.seek(END);
+	return it;
+}
+
+
+template<class Key,
+         class T>
+template<class... Args>
+typename ldb<Key,T>::iterator ldb<Key,T>::begin(Args&&... args)
+{
+	iterator it(db.get(),std::forward<Args>(args)...);
+	it.seek(FIRST);
+	return it;
+}
+
+
+template<class Key,
+         class T>
+template<class... Args>
+typename ldb<Key,T>::iterator ldb<Key,T>::find(const key_type &key,
+                                               Args&&... args)
+{
+	iterator it(db.get(),std::forward<Args>(args)...);
+	it.seek(key);
+
+	if(!it)
+		it.seek(END);
+
+	return it;
+}
+
+
+template<class Key,
+         class T>
+template<class... Args>
+typename ldb<Key,T>::const_iterator ldb<Key,T>::cend(Args&&... args)
 const
 {
 	const_iterator it(db.get(),std::forward<Args>(args)...);
@@ -135,7 +175,7 @@ const
 template<class Key,
          class T>
 template<class... Args>
-typename ldb<Key,T>::const_iterator ldb<Key,T>::begin(Args&&... args)
+typename ldb<Key,T>::const_iterator ldb<Key,T>::cbegin(Args&&... args)
 const
 {
 	const_iterator it(db.get(),std::forward<Args>(args)...);
@@ -147,8 +187,8 @@ const
 template<class Key,
          class T>
 template<class... Args>
-typename ldb<Key,T>::const_iterator ldb<Key,T>::find(const key_type &key,
-                                                     Args&&... args)
+typename ldb<Key,T>::const_iterator ldb<Key,T>::cfind(const key_type &key,
+                                                      Args&&... args)
 const
 {
 	const_iterator it(db.get(),std::forward<Args>(args)...);

@@ -21,6 +21,7 @@ namespace stldb
 #include "slice.h"
 #include "iterator_base.h"
 #include "const_iterator.h"
+#include "iterator.h"
 #include "ldb.h"
 }       // namespace stldb
 

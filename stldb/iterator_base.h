@@ -42,6 +42,16 @@ class iterator_base : public std::iterator<std::bidirectional_iterator_tag,
 	void seek(const typename T::first_type &slice)    { it->Seek(slice);                  }
 	void seek(const T &t)                             { it->Seek(t.first);                }
 
+	iterator_base &operator++();
+	iterator_base &operator--();
+	iterator_base operator++(int);
+	iterator_base operator--(int);
+
+	iterator_base &operator+=(const size_t &n);
+	iterator_base &operator-=(const size_t &n);
+	iterator_base operator+(const size_t &n);
+	iterator_base operator-(const size_t &n);
+
 	iterator_base(leveldb::DB *const &db,
 	              const bool &snap        = false,
 	              const bool &cache       = false);
@@ -92,6 +102,78 @@ iterator_base<T> &iterator_base<T>::operator=(const iterator_base &o)
 	else
 		seek(END);
 
+	return *this;
+}
+
+
+template<class T>
+iterator_base<T> iterator_base<T>::operator+(const size_t &n)
+{
+	auto ret(*this);
+	ret += n;
+	return ret;
+}
+
+
+template<class T>
+iterator_base<T> iterator_base<T>::operator-(const size_t &n)
+{
+	auto ret(*this);
+	ret -= n;
+	return ret;
+}
+
+
+template<class T>
+iterator_base<T> &iterator_base<T>::operator+=(const size_t &n)
+{
+	for(size_t i = 0; i < n; i++)
+		this->seek(NEXT);
+
+	return *this;
+}
+
+
+template<class T>
+iterator_base<T> &iterator_base<T>::operator-=(const size_t &n)
+{
+	for(size_t i = 0; i < n; i++)
+		this->seek(PREV);
+
+	return *this;
+}
+
+
+template<class T>
+iterator_base<T> iterator_base<T>::operator++(int)
+{
+	auto ret(*this);
+	++(*this);
+	return ret;
+}
+
+
+template<class T>
+iterator_base<T> iterator_base<T>::operator--(int)
+{
+	auto ret(*this);
+	--(*this);
+	return ret;
+}
+
+
+template<class T>
+iterator_base<T> &iterator_base<T>::operator++()
+{
+	this->seek(NEXT);
+	return *this;
+}
+
+
+template<class T>
+iterator_base<T> &iterator_base<T>::operator--()
+{
+	this->seek(PREV);
 	return *this;
 }
 
