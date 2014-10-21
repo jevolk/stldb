@@ -6,7 +6,7 @@
 #include "stldb/stldb.h"
 
 inline
-std::string randstr(const size_t &len)
+std::string randstr(const size_t &len = 5)
 {
 	std::string buf;
 	buf.resize(len);
@@ -17,6 +17,18 @@ std::string randstr(const size_t &len)
 	});
 
 	return buf;
+}
+
+
+template<class Db>
+void print_db(const Db &db)
+{
+	std::cout << "--- db ---" << std::endl;
+
+	for(const auto &it : db)
+		std::cout << it.first << " => " << it.second << std::endl;
+
+	std::cout << "----------" << std::endl;
 }
 
 
@@ -32,19 +44,18 @@ int main(int argc, char **argv)
 
 	stldb::ldb<std::string,std::string> db(argv[1]);
 
-	auto bit = db.begin();
-	std::advance(bit,2);
-	for(; bit; ++bit)
-	{
-		std::cout << bit->second << std::endl;
-	}
+	print_db(db);
 
-	std::cout << std::endl;
 
-	auto it = db.find("baz",stldb::UPPER);
-	if(!it)
+	std::vector<std::pair<std::string,std::string>> foo(16);
+	std::generate(foo.begin(),foo.end(),[&]
 	{
-		std::cout << "invalid" << std::endl;
-	}
-	else std::cout << it->second << std::endl;
+		return std::make_pair(randstr(5),randstr(10));
+	});
+
+	db.insert(foo.begin(),foo.end());
+	print_db(db);
+
+	db.erase(db.cbegin(),db.cend());
+	print_db(db);
 }

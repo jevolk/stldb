@@ -30,6 +30,10 @@ class ldb
 	using reverse_iterator        = std::reverse_iterator<iterator>;
 	using const_reverse_iterator  = std::reverse_iterator<const_iterator>;
 
+	const leveldb::DB *get_ldb() const    { return db.get();  }
+	const Options &get_options() const    { return options;   }
+	leveldb::DB *get_ldb()                { return db.get();  }
+
 	const_reverse_iterator crbegin(const Flag &flags = Flag(0)) const;
 	const_reverse_iterator crend(const Flag &flags = Flag(0)) const;
 	const_reverse_iterator rbegin(const Flag &flags = Flag(0)) const;
@@ -53,15 +57,13 @@ class ldb
 	const_iterator find(const key_type &key, const Flag &flags = Flag(0)) const;
 	iterator find(const key_type &key, const Flag &flags = Flag(0));
 
-	// Note: Expected behavior but performance is flawed at this time. Advise against using.
-	std::pair<iterator,bool> insert(const value_type &value, const Flag &flags = Flag(0));
-	template<class P> std::pair<iterator,bool> insert(P&& value, const Flag &flags = Flag(0));
 	template<class InputIt> void insert(InputIt first, InputIt last, const Flag &flags = Flag(0));
+	std::pair<iterator,bool> insert(const value_type &value, const Flag &flags = Flag(0));
+	void insert(const key_type &key, const mapped_type &value, const Flag &flags = Flag(0));
 
-	// Note: Non-STL behavior. Advise against using.
-	template<class... Args> std::pair<iterator,bool> emplace(Args&&... args);
-
-	void set(const key_type &key, const mapped_type &value, const Flag &flags = Flag(0));
+	iterator erase(const_iterator first, const_iterator last, const Flag &flags = Flag(0));
+	iterator erase(const_iterator pos, const Flag &flags = Flag(0));
+	size_t erase(const key_type &key, const Flag &flags = Flag(0));
 
 	size_t count(const key_type &key, const Flag &flags = Flag(0)) const;
 	size_t count(const key_type &key, const Flag &flags = Flag(0));
@@ -124,46 +126,52 @@ const
 
 template<class Key,
          class T>
-template<class... Args>
-std::pair<typename ldb<Key,T>::iterator,bool> ldb<Key,T>::emplace(Args&&... args)
+size_t ldb<Key,T>::erase(const key_type &key,
+                         const Flag &flags)
 {
-	static const WriteOptions wopt(false);
-	throw_on_error(db->Put(wopt,std::forward<Args>(args)...));
-	return {end(),true};
+	const auto it = const_cast<const ldb *>(this)->find(key,flags);
+	const bool ret = bool(it);
+	erase(it,flags);
+	return ret;
 }
 
 
 template<class Key,
          class T>
-template<class InputIt>
-void ldb<Key,T>::insert(InputIt first,
-                        InputIt last,
+typename ldb<Key,T>::iterator ldb<Key,T>::erase(const_iterator pos,
+                                                const Flag &flags)
+{
+	iterator ret = pos++;
+	const WriteOptions wops(flags);
+	throw_on_error(db->Delete(wops,pos->first));
+	return ret;
+}
+
+
+template<class Key,
+         class T>
+typename ldb<Key,T>::iterator ldb<Key,T>::erase(const_iterator first,
+                                                const_iterator last,
+                                                const Flag &flags)
+{
+	leveldb::WriteBatch batch;
+	for(; first != last; ++first)
+		batch.Delete(first->first);
+
+	const WriteOptions wops(flags);
+	throw_on_error(db->Write(wops,&batch));
+	return first;
+}
+
+
+template<class Key,
+         class T>
+void ldb<Key,T>::insert(const key_type &key,
+                        const mapped_type &value,
                         const Flag &flags)
 {
 	const WriteOptions wopt(flags);
-	std::for_each(first,last,[&]
-	(InputIt &it)
-	{
-		throw_on_error(db->Put(wopt,it.first,it.second));
-	});
-}
-
-
-template<class Key,
-         class T>
-template<class P>
-std::pair<typename ldb<Key,T>::iterator,bool> ldb<Key,T>::insert(P&& value,
-                                                                 const Flag &flags)
-{
-	auto ret = std::make_pair(find(value.first),false);
-	if(ret.first)
-		return ret;
-
-	const WriteOptions wopt(flags);
-	throw_on_error(db->Put(wopt,value.first,value.second));
-	ret.first = find(value.first);
-	ret.second = true;
-	return ret;
+	throw_on_error(db->Put(wopt,key,value));
 }
 
 
@@ -186,15 +194,17 @@ std::pair<typename ldb<Key,T>::iterator,bool> ldb<Key,T>::insert(const value_typ
 
 template<class Key,
          class T>
-void ldb<Key,T>::set(const key_type &key,
-                     const mapped_type &value,
-                     const Flag &flags)
+template<class InputIt>
+void ldb<Key,T>::insert(InputIt first,
+                        InputIt last,
+                        const Flag &flags)
 {
-	const WriteOptions wopt(flags);
-	const leveldb::Status stat = db->Put(wopt,key,value);
+	leveldb::WriteBatch batch;
+	for(; first != last; ++first)
+		batch.Put(first->first,first->second);
 
-	if(!stat.ok())
-		throw std::runtime_error(stat.ToString());
+	const WriteOptions wops(flags);
+	throw_on_error(db->Write(wops,&batch));
 }
 
 

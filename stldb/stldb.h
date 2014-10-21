@@ -7,6 +7,7 @@
 	#define STLDB_INCLUDED
 
 
+// std
 #include <type_traits>
 
 // boost
@@ -14,9 +15,11 @@
 
 // leveldb
 #include <leveldb/filter_policy.h>
+#include <leveldb/write_batch.h>
 #include <leveldb/cache.h>
 #include <leveldb/db.h>
 
+// stldb
 namespace stldb
 {
 #include "exception.h"
@@ -26,7 +29,7 @@ namespace stldb
 #include "const_iterator.h"
 #include "iterator.h"
 #include "ldb.h"
-}       // namespace stldb
+}
 
 
 #endif  // STLDB_INCLUDED
