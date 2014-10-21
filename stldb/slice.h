@@ -8,11 +8,25 @@ class Slice : public leveldb::Slice
 {
 	iterator_base *base;
 
-  public:
-	operator T() const
+	template<class U> typename
+	std::enable_if<std::is_convertible<U,std::string>::value, U>::type
+	cast() const
+	{
+		return {data(),size()};
+	}
+
+	template<class U> typename
+	std::enable_if<std::is_arithmetic<U>::value, U>::type
+	cast() const
 	{
 		using type_t = typename std::remove_cv<T>::type;
 		return boost::lexical_cast<type_t>(data(),size());
+	}
+
+  public:
+	operator T() const
+	{
+		return cast<T>();
 	}
 
 	// Note: is_trivially_copyable not available GCC ~4.9
