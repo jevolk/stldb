@@ -12,35 +12,33 @@ enum Seek
 	END,
 };
 
-
-template<class T>
-class iterator_base : public std::iterator<std::bidirectional_iterator_tag,
-                                           T>
+class iterator_base
 {
-	leveldb::DB *db;
-	std::shared_ptr<const leveldb::Snapshot> snap;
-	ReadOptions ropt;
+	template<class T> friend class Slice;             // Accesses it/db for write-backs to iterator
 
   protected:
+	leveldb::DB *db;
+	std::shared_ptr<const leveldb::Snapshot> snap;
 	std::unique_ptr<leveldb::Iterator> it;
+	Flag flags;
+
+	bool valid() const                                { return it->Valid();               }
+	int cmp(const iterator_base &o) const;
+
+	template<class T> void seek(const typename T::first_type &slice);
+	template<class T> void seek(const T &t);
+	void seek(const Seek &seek);
+	void flush();
 
   public:
-	// Utils
-	bool valid() const                                { return it->Valid();               }
 	operator bool() const                             { return valid();                   }
 	bool operator!() const                            { return !valid();                  }
-
-	int cmp(const iterator_base &o) const;
 	bool operator==(const iterator_base &o) const     { return cmp(o) == 0;               }
 	bool operator!=(const iterator_base &o) const     { return cmp(o) != 0;               }
 	bool operator<=(const iterator_base &o) const     { return cmp(o) <= 0;               }
 	bool operator>=(const iterator_base &o) const     { return cmp(o) >= 0;               }
 	bool operator<(const iterator_base &o) const      { return cmp(o) < 0;                }
 	bool operator>(const iterator_base &o) const      { return cmp(o) > 0;                }
-
-	void seek(const Seek &seek);
-	void seek(const typename T::first_type &slice)    { it->Seek(slice);                  }
-	void seek(const T &t)                             { it->Seek(t.first);                }
 
 	iterator_base &operator++();
 	iterator_base &operator--();
@@ -52,52 +50,54 @@ class iterator_base : public std::iterator<std::bidirectional_iterator_tag,
 	iterator_base operator+(const size_t &n);
 	iterator_base operator-(const size_t &n);
 
-	iterator_base(leveldb::DB *const &db,
-	              const bool &snap        = false,
-	              const bool &cache       = false);
-
+	template<class Seek> iterator_base(leveldb::DB *const &db, const Seek &seek, const Flag &flags);
 	iterator_base(const iterator_base &other);
 	iterator_base &operator=(const iterator_base &other) &;
+	virtual ~iterator_base() = default;
 };
 
 
-template<class T>
-iterator_base<T>::iterator_base(leveldb::DB *const &db,
-                                const bool &snap,
-                                const bool &cache):
+template<class Seek>
+iterator_base::iterator_base(leveldb::DB *const &db,
+                             const Seek &seek,
+                             const Flag &flags):
 db(db),
-snap({snap? db->GetSnapshot() : nullptr, [db](const leveldb::Snapshot *const &s) { if(s) db->ReleaseSnapshot(s); }}),
-ropt(cache,false,this->snap.get()),
-it(db->NewIterator(ropt))
+snap({flags & SNAPSHOT? db->GetSnapshot():
+                        nullptr, [db](const leveldb::Snapshot *const &s) { if(s) db->ReleaseSnapshot(s); }}),
+it(db->NewIterator(ReadOptions(flags,this->snap.get()))),
+flags(flags)
 {
+	this->seek(seek);
 
+	if(!valid())
+		this->seek(END);
 }
 
 
-template<class T>
-iterator_base<T>::iterator_base(const iterator_base &o):
+inline
+iterator_base::iterator_base(const iterator_base &o):
 db(o.db),
 snap(o.snap),
-ropt(o.ropt),
-it(db->NewIterator(ropt))
+it(db->NewIterator(ReadOptions(o.flags,this->snap.get()))),
+flags(o.flags)
 {
-	if(valid())
+	if(o.valid())
 		it->Seek(o.it->key());
 	else
 		seek(END);
 }
 
 
-template<class T>
-iterator_base<T> &iterator_base<T>::operator=(const iterator_base &o)
+inline
+iterator_base &iterator_base::operator=(const iterator_base &o)
 &
 {
 	db = o.db;
 	snap = o.snap;
-	ropt = o.ropt;
-	it.reset(db->NewIterator(ropt));
+	flags = o.flags;
+	it.reset(db->NewIterator(ReadOptions(o.flags,this->snap.get())));
 
-	if(valid())
+	if(o.valid())
 		it->Seek(o.it->key());
 	else
 		seek(END);
@@ -106,8 +106,8 @@ iterator_base<T> &iterator_base<T>::operator=(const iterator_base &o)
 }
 
 
-template<class T>
-iterator_base<T> iterator_base<T>::operator+(const size_t &n)
+inline
+iterator_base iterator_base::operator+(const size_t &n)
 {
 	auto ret(*this);
 	ret += n;
@@ -115,8 +115,8 @@ iterator_base<T> iterator_base<T>::operator+(const size_t &n)
 }
 
 
-template<class T>
-iterator_base<T> iterator_base<T>::operator-(const size_t &n)
+inline
+iterator_base iterator_base::operator-(const size_t &n)
 {
 	auto ret(*this);
 	ret -= n;
@@ -124,8 +124,8 @@ iterator_base<T> iterator_base<T>::operator-(const size_t &n)
 }
 
 
-template<class T>
-iterator_base<T> &iterator_base<T>::operator+=(const size_t &n)
+inline
+iterator_base &iterator_base::operator+=(const size_t &n)
 {
 	for(size_t i = 0; i < n; i++)
 		this->seek(NEXT);
@@ -134,8 +134,8 @@ iterator_base<T> &iterator_base<T>::operator+=(const size_t &n)
 }
 
 
-template<class T>
-iterator_base<T> &iterator_base<T>::operator-=(const size_t &n)
+inline
+iterator_base &iterator_base::operator-=(const size_t &n)
 {
 	for(size_t i = 0; i < n; i++)
 		this->seek(PREV);
@@ -144,8 +144,8 @@ iterator_base<T> &iterator_base<T>::operator-=(const size_t &n)
 }
 
 
-template<class T>
-iterator_base<T> iterator_base<T>::operator++(int)
+inline
+iterator_base iterator_base::operator++(int)
 {
 	auto ret(*this);
 	++(*this);
@@ -153,8 +153,8 @@ iterator_base<T> iterator_base<T>::operator++(int)
 }
 
 
-template<class T>
-iterator_base<T> iterator_base<T>::operator--(int)
+inline
+iterator_base iterator_base::operator--(int)
 {
 	auto ret(*this);
 	--(*this);
@@ -162,38 +162,61 @@ iterator_base<T> iterator_base<T>::operator--(int)
 }
 
 
-template<class T>
-iterator_base<T> &iterator_base<T>::operator++()
+inline
+iterator_base &iterator_base::operator++()
 {
 	this->seek(NEXT);
 	return *this;
 }
 
 
-template<class T>
-iterator_base<T> &iterator_base<T>::operator--()
+inline
+iterator_base &iterator_base::operator--()
 {
 	this->seek(PREV);
 	return *this;
 }
 
 
-template<class T>
-void iterator_base<T>::seek(const Seek &seek)
+inline
+void iterator_base::flush()
 {
-	switch(seek)
-	{
-		case NEXT:     it->Next();                      break;
-		case PREV:     it->Prev();                      break;
-		case FIRST:    it->SeekToFirst();               break;
-		case LAST:     it->SeekToLast();                break;
-		case END:      it->SeekToLast();  it->Next();   break;
-	};
+	const auto old = std::move(it);
+	it.reset(db->NewIterator(ReadOptions(flags,snap.get())));
+	seek(old->key());
 }
 
 
 template<class T>
-int iterator_base<T>::cmp(const iterator_base &o)
+void iterator_base::seek(const typename T::first_type &slice)
+{
+	it->Seek(slice);
+}
+
+
+template<class T>
+void iterator_base::seek(const T &t)
+{
+	it->Seek(t);
+}
+
+
+inline
+void iterator_base::seek(const Seek &seek)
+{
+	switch(seek)
+	{
+		case NEXT:     it->Next();         break;
+		case PREV:     it->Prev();         break;
+		case FIRST:    it->SeekToFirst();  break;
+		case LAST:     it->SeekToLast();   break;
+		case END:      it->SeekToLast();   if(valid()) it->Next();
+	};
+}
+
+
+inline
+int iterator_base::cmp(const iterator_base &o)
 const
 {
 	return !valid() && !o.valid()?  0:                               // equally invalid

@@ -4,25 +4,30 @@
 
 
 template<class T>
-class iterator : public iterator_base<T>
+class iterator : public iterator_base,
+                 public std::iterator<std::bidirectional_iterator_tag,T>
 {
 	mutable T t;
 
   public:
-	T &operator*() const;
-	T *operator->() const;
+	const T &operator*() const;
+	const T *operator->() const;
 
-	iterator(leveldb::DB *const &db,
-	         const bool &snap = false,
-	         const bool &cache = false);
+	T &operator*();
+	T *operator->();
+
+	template<class Seek> iterator(leveldb::DB *const &db,
+	                              const Seek &seek         = FIRST,
+	                              const Flag &flags        = Flag(0));
 };
 
 
 template<class T>
+template<class Seek>
 iterator<T>::iterator(leveldb::DB *const &db,
-                      const bool &snap,
-                      const bool &cache):
-iterator_base<T>(db,snap,cache)
+                      const Seek &seek,
+                      const Flag &flags):
+iterator_base(db,seek,flags)
 {
 
 }
@@ -30,7 +35,6 @@ iterator_base<T>(db,snap,cache)
 
 template<class T>
 T *iterator<T>::operator->()
-const
 {
 	operator*();
 	return &t;
@@ -39,8 +43,27 @@ const
 
 template<class T>
 T &iterator<T>::operator*()
+{
+	const auto *const &base = static_cast<const iterator_base *>(this);
+	t = {{const_cast<iterator_base *>(base),this->it->key()},
+	     {const_cast<iterator_base *>(base),this->it->value()}};
+	return t;
+}
+
+
+template<class T>
+const T *iterator<T>::operator->()
 const
 {
-	this->t = {this->it->key(),this->it->value()};
+	operator*();
+	return &t;
+}
+
+
+template<class T>
+const T &iterator<T>::operator*()
+const
+{
+	t = {{nullptr,this->it->key()}, {nullptr,this->it->value()}};
 	return t;
 }

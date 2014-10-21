@@ -4,29 +4,56 @@
 
 
 template<class T>
-struct Slice : leveldb::Slice
+class Slice : public leveldb::Slice
 {
-	operator T() const;
-	template<class... Args>	Slice(Args&&... args);
+	iterator_base *base;
+
+  public:
+	operator T() const
+	{
+		using type_t = typename std::remove_cv<T>::type;
+		return boost::lexical_cast<type_t>(data(),size());
+	}
+
+	// Note: is_trivially_copyable not available GCC ~4.9
+	template<class U> typename
+	std::enable_if<std::is_trivial<U>::value, Slice>::type
+	&operator=(U&& t)
+	{
+		const auto &key = base->it->key();
+		const leveldb::Slice val(reinterpret_cast<const char *>(&t),sizeof(t));
+		const WriteOptions wops(base->flags);
+		throw_on_error(base->db->Put(wops,key,val));
+
+		if(wops.flush)
+			base->flush();
+
+		return *this;
+	}
+
+	template<class U> typename
+	std::enable_if<!std::is_trivial<U>() && std::is_convertible<U,std::string>(), Slice>::type
+	&operator=(U&& t)
+	{
+		const auto &key = base->it->key();
+		const WriteOptions wops(base->flags);
+		throw_on_error(base->db->Put(wops,key,leveldb::Slice(t)));
+
+		if(wops.flush)
+			base->flush();
+
+		return *this;
+	}
+
+	template<class... Args>
+	Slice(iterator_base *const &base = nullptr,
+	      Args&&... args):
+	leveldb::Slice(std::forward<Args>(args)...),
+	base(base)
+	{
+
+	}
 };
-
-
-template<class T>
-template<class... Args>
-Slice<T>::Slice(Args&&... args):
-leveldb::Slice(std::forward<Args>(args)...)
-{
-
-}
-
-
-template<class T>
-Slice<T>::operator T()
-const
-{
-	using type_t = typename std::remove_cv<T>::type;
-	return boost::lexical_cast<type_t>(data(),size());
-}
 
 
 template<class T>

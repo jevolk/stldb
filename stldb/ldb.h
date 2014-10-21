@@ -10,6 +10,8 @@ class ldb
 	std::unique_ptr<leveldb::Cache> cache;
 	std::unique_ptr<const leveldb::FilterPolicy> fp;
 	Options options;
+
+  protected:
 	std::unique_ptr<leveldb::DB> db;
 
   public:
@@ -28,22 +30,32 @@ class ldb
 	using reverse_iterator        = std::reverse_iterator<iterator>;
 	using const_reverse_iterator  = std::reverse_iterator<const_iterator>;
 
-	// Reading
-	template<class... Args> const_iterator cend(Args&&... args) const;
+	template<class... Args> const_reverse_iterator crbegin(Args&&... args) const;
+	template<class... Args> const_reverse_iterator crend(Args&&... args) const;
 	template<class... Args> const_iterator cbegin(Args&&... args) const;
-	template<class... Args> const_iterator cfind(const key_type &key, Args&&... args) const;
-
-	template<class... Args> iterator end(Args&&... args);
+	template<class... Args> const_iterator cend(Args&&... args) const;
+	template<class... Args> reverse_iterator rbegin(Args&&... args);
+	template<class... Args> reverse_iterator rend(Args&&... args);
 	template<class... Args> iterator begin(Args&&... args);
+	template<class... Args> iterator end(Args&&... args);
+
+	template<class... Args> const_iterator find(const key_type &key, Args&&... args) const;
 	template<class... Args> iterator find(const key_type &key, Args&&... args);
 
-	// Utils
-	size_t count() const;
-	size_t count(const key_type &key) const;
-	size_t count(const key_type &key, const bool &cache = false);
+	// Note: Expected behavior but performance is flawed at this time. Advise against using.
+	std::pair<iterator,bool> insert(const value_type &value, const Flag &flags = Flag(0));
+	template<class P> std::pair<iterator,bool> insert(P&& value, const Flag &flags = Flag(0));
+	template<class InputIt> void insert(InputIt first, InputIt last, const Flag &flags = Flag(0));
 
-	// Writing
-	void set(const key_type &key, const mapped_type &value, const bool &sync = false);
+	// Note: Non-STL behavior. Advise against using.
+	template<class... Args> std::pair<iterator,bool> emplace(Args&&... args);
+
+	void set(const key_type &key, const mapped_type &value, const Flag &flags = Flag(0));
+
+	size_t count(const key_type &key, const Flag &flags = Flag(0)) const;
+	size_t count(const key_type &key, const Flag &flags = Flag(0));
+
+	size_t size() const;
 
 	ldb(const std::string &dir,
 	    const size_t &cache_size  = (32UL * 1024UL * 1024UL),
@@ -62,12 +74,7 @@ options(cache.get(),fp.get(),leveldb::kSnappyCompression),
 db([&]() -> leveldb::DB *
 {
 	leveldb::DB *ret;
-	const leveldb::Status s = leveldb::DB::Open(options,dir,&ret);
-	std::cout << "Leveldb::DB::Open(" << dir << "): " << s.ToString() << std::endl;
-
-	if(!s.ok())
-		throw std::runtime_error("Failed to start levelDB");
-
+	throw_on_error(leveldb::DB::Open(options,dir,&ret));
 	return ret;
 }())
 {
@@ -78,39 +85,7 @@ db([&]() -> leveldb::DB *
 
 template<class Key,
          class T>
-void ldb<Key,T>::set(const key_type &key,
-                     const mapped_type &value,
-                     const bool &sync)
-{
-	const WriteOptions wopt(sync);
-	const leveldb::Status stat = db->Put(wopt,key,value);
-
-	if(!stat.ok())
-		throw std::runtime_error(stat.ToString());
-}
-
-
-template<class Key,
-         class T>
-size_t ldb<Key,T>::count(const key_type &key,
-                         const bool &cache)
-{
-	return bool(cfind(key,false,cache));
-}
-
-
-template<class Key,
-         class T>
-size_t ldb<Key,T>::count(const key_type &key)
-const
-{
-	return bool(cfind(key));
-}
-
-
-template<class Key,
-         class T>
-size_t ldb<Key,T>::count()
+size_t ldb<Key,T>::size()
 const
 {
 	size_t ret = 0;
@@ -124,23 +99,96 @@ const
 
 template<class Key,
          class T>
-template<class... Args>
-typename ldb<Key,T>::iterator ldb<Key,T>::end(Args&&... args)
+size_t ldb<Key,T>::count(const key_type &key,
+                         const Flag &flags)
 {
-	iterator it(db.get(),std::forward<Args>(args)...);
-	it.seek(END);
-	return it;
+	return bool(find(key,flags));
+}
+
+
+template<class Key,
+         class T>
+size_t ldb<Key,T>::count(const key_type &key,
+                         const Flag &flags)
+const
+{
+	return bool(find(key,flags));
 }
 
 
 template<class Key,
          class T>
 template<class... Args>
-typename ldb<Key,T>::iterator ldb<Key,T>::begin(Args&&... args)
+std::pair<typename ldb<Key,T>::iterator,bool> ldb<Key,T>::emplace(Args&&... args)
 {
-	iterator it(db.get(),std::forward<Args>(args)...);
-	it.seek(FIRST);
-	return it;
+	static const WriteOptions wopt(false);
+	throw_on_error(db->Put(wopt,std::forward<Args>(args)...));
+	return {end(),true};
+}
+
+
+template<class Key,
+         class T>
+template<class InputIt>
+void ldb<Key,T>::insert(InputIt first,
+                        InputIt last,
+                        const Flag &flags)
+{
+	const WriteOptions wopt(flags);
+	std::for_each(first,last,[&]
+	(InputIt &it)
+	{
+		throw_on_error(db->Put(wopt,it.first,it.second));
+	});
+}
+
+
+template<class Key,
+         class T>
+template<class P>
+std::pair<typename ldb<Key,T>::iterator,bool> ldb<Key,T>::insert(P&& value,
+                                                                 const Flag &flags)
+{
+	auto ret = std::make_pair(find(value.first),false);
+	if(ret.first)
+		return ret;
+
+	const WriteOptions wopt(flags);
+	throw_on_error(db->Put(wopt,value.first,value.second));
+	ret.first = find(value.first);
+	ret.second = true;
+	return ret;
+}
+
+
+template<class Key,
+         class T>
+std::pair<typename ldb<Key,T>::iterator,bool> ldb<Key,T>::insert(const value_type &value,
+                                                                 const Flag &flags)
+{
+	auto ret = std::make_pair(find(value.first),false);
+	if(ret.first)
+		return ret;
+
+	const WriteOptions wopt(flags);
+	throw_on_error(db->Put(wopt,value.first,value.second));
+	ret.first = find(value.first);
+	ret.second = true;
+	return ret;
+}
+
+
+template<class Key,
+         class T>
+void ldb<Key,T>::set(const key_type &key,
+                     const mapped_type &value,
+                     const Flag &flags)
+{
+	const WriteOptions wopt(flags);
+	const leveldb::Status stat = db->Put(wopt,key,value);
+
+	if(!stat.ok())
+		throw std::runtime_error(stat.ToString());
 }
 
 
@@ -150,13 +198,54 @@ template<class... Args>
 typename ldb<Key,T>::iterator ldb<Key,T>::find(const key_type &key,
                                                Args&&... args)
 {
-	iterator it(db.get(),std::forward<Args>(args)...);
-	it.seek(key);
+	return {db.get(),key,std::forward<Args>(args)...};
+}
 
-	if(!it)
-		it.seek(END);
 
-	return it;
+template<class Key,
+         class T>
+template<class... Args>
+typename ldb<Key,T>::const_iterator ldb<Key,T>::find(const key_type &key,
+                                                     Args&&... args)
+const
+{
+	return {db.get(),key,std::forward<Args>(args)...};
+}
+
+
+template<class Key,
+         class T>
+template<class... Args>
+typename ldb<Key,T>::iterator ldb<Key,T>::end(Args&&... args)
+{
+	return {db.get(),END,std::forward<Args>(args)...};
+}
+
+
+template<class Key,
+         class T>
+template<class... Args>
+typename ldb<Key,T>::iterator ldb<Key,T>::begin(Args&&... args)
+{
+	return {db.get(),FIRST,std::forward<Args>(args)...};
+}
+
+
+template<class Key,
+         class T>
+template<class... Args>
+typename ldb<Key,T>::reverse_iterator ldb<Key,T>::rend(Args&&... args)
+{
+	return {db.get(),FIRST,std::forward<Args>(args)...};
+}
+
+
+template<class Key,
+         class T>
+template<class... Args>
+typename ldb<Key,T>::reverse_iterator ldb<Key,T>::rbegin(Args&&... args)
+{
+	return {db.get(),END,std::forward<Args>(args)...};
 }
 
 
@@ -166,9 +255,7 @@ template<class... Args>
 typename ldb<Key,T>::const_iterator ldb<Key,T>::cend(Args&&... args)
 const
 {
-	const_iterator it(db.get(),std::forward<Args>(args)...);
-	it.seek(END);
-	return it;
+	return {db.get(),END,std::forward<Args>(args)...};
 }
 
 
@@ -178,24 +265,25 @@ template<class... Args>
 typename ldb<Key,T>::const_iterator ldb<Key,T>::cbegin(Args&&... args)
 const
 {
-	const_iterator it(db.get(),std::forward<Args>(args)...);
-	it.seek(FIRST);
-	return it;
+	return {db.get(),FIRST,std::forward<Args>(args)...};
 }
 
 
 template<class Key,
          class T>
 template<class... Args>
-typename ldb<Key,T>::const_iterator ldb<Key,T>::cfind(const key_type &key,
-                                                      Args&&... args)
+typename ldb<Key,T>::const_reverse_iterator ldb<Key,T>::crend(Args&&... args)
 const
 {
-	const_iterator it(db.get(),std::forward<Args>(args)...);
-	it.seek(key);
+	return {db.get(),FIRST,std::forward<Args>(args)...};
+}
 
-	if(!it)
-		it.seek(END);
 
-	return it;
+template<class Key,
+         class T>
+template<class... Args>
+typename ldb<Key,T>::const_reverse_iterator ldb<Key,T>::crbegin(Args&&... args)
+const
+{
+	return {db.get(),END,std::forward<Args>(args)...};
 }

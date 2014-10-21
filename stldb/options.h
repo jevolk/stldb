@@ -3,7 +3,7 @@
  */
 
 
-struct Options : public leveldb::Options
+struct Options : leveldb::Options
 {
 	Options(leveldb::Cache *const cache         = nullptr,
 	        const leveldb::FilterPolicy *fp     = nullptr,
@@ -25,23 +25,35 @@ struct Options : public leveldb::Options
 };
 
 
-struct WriteOptions : public leveldb::WriteOptions
+enum Flag : uint_fast8_t
 {
-	WriteOptions(const bool &sync = false)
+	CACHE      = 0x01,          // ReadOptions.fill_cache
+	SNAPSHOT   = 0x02,          // ReadOptions.snapshot
+	VERIFY     = 0x04,          // ReadOptions.verify_checksums
+	FLUSH      = 0x08,          // WriteOptions.flush
+	SYNC       = 0x10,          // WriteOptions.sync
+};
+
+
+struct WriteOptions : leveldb::WriteOptions
+{
+	// Added for toggling iterator reset() or any similar semantic
+	bool flush;
+
+	WriteOptions(const Flag &flags):
+	flush(flags & Flag::FLUSH)
 	{
-		this->sync = sync;
+		this->sync = flags & Flag::SYNC;
 	}
 };
 
 
-struct ReadOptions : public leveldb::ReadOptions
+struct ReadOptions : leveldb::ReadOptions
 {
-	ReadOptions(const bool &cache                      = false,
-	            const bool &verify                     = false,
-	            const leveldb::Snapshot *const &snap   = nullptr)
+	ReadOptions(const Flag &flags, const leveldb::Snapshot *const &snap = nullptr)
 	{
-		this->verify_checksums  = verify;
-		this->fill_cache        = fill_cache;
-		this->snapshot          = snapshot;
+		this->verify_checksums  = flags & Flag::VERIFY;
+		this->fill_cache        = flags & Flag::CACHE;
+		this->snapshot          = (flags & Flag::SNAPSHOT)? snap : nullptr;
 	}
 };

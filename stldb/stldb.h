@@ -7,6 +7,8 @@
 	#define STLDB_INCLUDED
 
 
+#include <type_traits>
+
 // boost
 #include <boost/lexical_cast.hpp>
 
@@ -17,9 +19,10 @@
 
 namespace stldb
 {
+#include "exception.h"
 #include "options.h"
-#include "slice.h"
 #include "iterator_base.h"
+#include "slice.h"
 #include "const_iterator.h"
 #include "iterator.h"
 #include "ldb.h"
