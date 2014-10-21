@@ -44,5 +44,5 @@ test: test.o
 	$(CC) -o $@ $(CCFLAGS) $(WFLAGS) $(LIBPATH) $^ $(LDFLAGS)
 
 
-test.o: test.cpp
+test.o: test.cpp stldb/*.h
 	$(CC) -c -o $@ $(CCFLAGS) $(WFLAGS) $<

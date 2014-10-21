@@ -5,11 +5,11 @@
 
 enum Seek
 {
-	NEXT,
-	PREV,
-	FIRST,
-	LAST,
-	END,
+	NEXT,       // Next() - next element
+	PREV,       // Prev() - previous element
+	FIRST,      // SeekToFirst() - first element
+	LAST,       // SeekToLast() - last element
+	END,        // SeekToLast() + Next() - past the end (invalid)
 };
 
 class iterator_base
@@ -25,7 +25,6 @@ class iterator_base
 	bool valid() const                                { return it->Valid();               }
 	int cmp(const iterator_base &o) const;
 
-	template<class T> void seek(const typename T::first_type &slice);
 	template<class T> void seek(const T &t);
 	void seek(const Seek &seek);
 	void flush();
@@ -50,7 +49,7 @@ class iterator_base
 	iterator_base operator+(const size_t &n);
 	iterator_base operator-(const size_t &n);
 
-	template<class Seek> iterator_base(leveldb::DB *const &db, const Seek &seek, const Flag &flags);
+	template<class Seek> iterator_base(leveldb::DB *const &db, const Seek &seek, const Flag &flags = Flag(0));
 	iterator_base(const iterator_base &other);
 	iterator_base &operator=(const iterator_base &other) &;
 	virtual ~iterator_base() = default;
@@ -62,15 +61,19 @@ iterator_base::iterator_base(leveldb::DB *const &db,
                              const Seek &seek,
                              const Flag &flags):
 db(db),
-snap({flags & SNAPSHOT? db->GetSnapshot():
-                        nullptr, [db](const leveldb::Snapshot *const &s) { if(s) db->ReleaseSnapshot(s); }}),
+snap
+({
+	flags & SNAPSHOT? db->GetSnapshot() : nullptr, [db]
+	(const leveldb::Snapshot *const &s)
+	{
+		if(s)
+			db->ReleaseSnapshot(s);
+	}
+}),
 it(db->NewIterator(ReadOptions(flags,this->snap.get()))),
 flags(flags)
 {
 	this->seek(seek);
-
-	if(!valid())
-		this->seek(END);
 }
 
 
@@ -188,29 +191,37 @@ void iterator_base::flush()
 
 
 template<class T>
-void iterator_base::seek(const typename T::first_type &slice)
-{
-	it->Seek(slice);
-}
-
-
-template<class T>
 void iterator_base::seek(const T &t)
 {
 	it->Seek(t);
+
+	if(!valid())
+		return;
+
+	if(it->key() != t)
+	{
+		if(flags & ~(UPPER|LOWER))
+			seek(END);
+	}
+	else if(flags & UPPER)
+		seek(NEXT);
 }
 
 
 inline
-void iterator_base::seek(const Seek &seek)
+void iterator_base::seek(const Seek &s)
 {
-	switch(seek)
+	switch(s)
 	{
 		case NEXT:     it->Next();         break;
 		case PREV:     it->Prev();         break;
 		case FIRST:    it->SeekToFirst();  break;
 		case LAST:     it->SeekToLast();   break;
-		case END:      it->SeekToLast();   if(valid()) it->Next();
+		case END:
+		default:
+			seek(LAST);
+			if(valid())
+				seek(NEXT);
 	};
 }
 

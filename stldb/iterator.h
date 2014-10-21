@@ -16,21 +16,8 @@ class iterator : public iterator_base,
 	T &operator*();
 	T *operator->();
 
-	template<class Seek> iterator(leveldb::DB *const &db,
-	                              const Seek &seek         = FIRST,
-	                              const Flag &flags        = Flag(0));
+    template<class... Args> iterator(Args&&... args): iterator_base(std::forward<Args>(args)...) {}
 };
-
-
-template<class T>
-template<class Seek>
-iterator<T>::iterator(leveldb::DB *const &db,
-                      const Seek &seek,
-                      const Flag &flags):
-iterator_base(db,seek,flags)
-{
-
-}
 
 
 template<class T>
@@ -45,8 +32,13 @@ template<class T>
 T &iterator<T>::operator*()
 {
 	const auto *const &base = static_cast<const iterator_base *>(this);
-	t = {{const_cast<iterator_base *>(base),this->it->key()},
-	     {const_cast<iterator_base *>(base),this->it->value()}};
+
+	t =
+	{
+		{ const_cast<iterator_base *>(base), this->it->key()    },
+		{ const_cast<iterator_base *>(base), this->it->value()  },
+	};
+
 	return t;
 }
 
@@ -64,6 +56,11 @@ template<class T>
 const T &iterator<T>::operator*()
 const
 {
-	t = {{nullptr,this->it->key()}, {nullptr,this->it->value()}};
+	t =
+	{
+		{ nullptr, this->it->key()    },
+		{ nullptr, this->it->value()  },
+	};
+
 	return t;
 }

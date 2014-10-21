@@ -32,6 +32,8 @@ enum Flag : uint_fast8_t
 	VERIFY     = 0x04,          // ReadOptions.verify_checksums
 	FLUSH      = 0x08,          // WriteOptions.flush
 	SYNC       = 0x10,          // WriteOptions.sync
+	LOWER      = 0x20,          // lower_bound indicator when seeking by key
+	UPPER      = 0x40,          // upper_bound indicator when seeking by key
 };
 
 

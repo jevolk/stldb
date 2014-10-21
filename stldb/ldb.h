@@ -19,7 +19,7 @@ class ldb
 	using mapped_type             = T;
 	using value_type              = std::pair<Slice<const key_type>, Slice<mapped_type>>;
 	using size_type               = std::size_t;
-	using difference_type         = void;
+	using difference_type         = size_t;
 	using key_compare             = leveldb::Comparator;
 	using reference               = value_type &;
 	using const_reference         = const value_type &;
@@ -30,17 +30,28 @@ class ldb
 	using reverse_iterator        = std::reverse_iterator<iterator>;
 	using const_reverse_iterator  = std::reverse_iterator<const_iterator>;
 
-	template<class... Args> const_reverse_iterator crbegin(Args&&... args) const;
-	template<class... Args> const_reverse_iterator crend(Args&&... args) const;
-	template<class... Args> const_iterator cbegin(Args&&... args) const;
-	template<class... Args> const_iterator cend(Args&&... args) const;
-	template<class... Args> reverse_iterator rbegin(Args&&... args);
-	template<class... Args> reverse_iterator rend(Args&&... args);
-	template<class... Args> iterator begin(Args&&... args);
-	template<class... Args> iterator end(Args&&... args);
+	const_reverse_iterator crbegin(const Flag &flags = Flag(0)) const;
+	const_reverse_iterator crend(const Flag &flags = Flag(0)) const;
+	const_reverse_iterator rbegin(const Flag &flags = Flag(0)) const;
+	const_reverse_iterator rend(const Flag &flags = Flag(0)) const;
+	reverse_iterator rbegin(const Flag &flags = Flag(0));
+	reverse_iterator rend(const Flag &flags = Flag(0));
 
-	template<class... Args> const_iterator find(const key_type &key, Args&&... args) const;
-	template<class... Args> iterator find(const key_type &key, Args&&... args);
+	const_iterator cbegin(const Flag &flags = Flag(0)) const;
+	const_iterator cend(const Flag &flags = Flag(0)) const;
+	const_iterator begin(const Flag &flags = Flag(0)) const;
+	const_iterator end(const Flag &flags = Flag(0)) const;
+	iterator begin(const Flag &flags = Flag(0));
+	iterator end(const Flag &flags = Flag(0));
+
+	const_iterator upper_bound(const key_type &key, const Flag &flags = Flag(0)) const;
+	iterator upper_bound(const key_type &key, const Flag &flags = Flag(0));
+
+	const_iterator lower_bound(const key_type &key, const Flag &flags = Flag(0)) const;
+	iterator lower_bound(const key_type &key, const Flag &flags = Flag(0));
+
+	const_iterator find(const key_type &key, const Flag &flags = Flag(0)) const;
+	iterator find(const key_type &key, const Flag &flags = Flag(0));
 
 	// Note: Expected behavior but performance is flawed at this time. Advise against using.
 	std::pair<iterator,bool> insert(const value_type &value, const Flag &flags = Flag(0));
@@ -88,12 +99,7 @@ template<class Key,
 size_t ldb<Key,T>::size()
 const
 {
-	size_t ret = 0;
-	const auto cend = this->cend();
-	for(auto it = cbegin(); it != cend; ++it)
-		ret++;
-
-	return ret;
+	return std::distance(begin(),end());
 }
 
 
@@ -194,96 +200,160 @@ void ldb<Key,T>::set(const key_type &key,
 
 template<class Key,
          class T>
-template<class... Args>
 typename ldb<Key,T>::iterator ldb<Key,T>::find(const key_type &key,
-                                               Args&&... args)
+                                               const Flag &flags)
 {
-	return {db.get(),key,std::forward<Args>(args)...};
+	return {db.get(),key,flags};
 }
 
 
 template<class Key,
          class T>
-template<class... Args>
 typename ldb<Key,T>::const_iterator ldb<Key,T>::find(const key_type &key,
-                                                     Args&&... args)
+                                                     const Flag &flags)
 const
 {
-	return {db.get(),key,std::forward<Args>(args)...};
+	return {db.get(),key,flags};
 }
 
 
 template<class Key,
          class T>
-template<class... Args>
-typename ldb<Key,T>::iterator ldb<Key,T>::end(Args&&... args)
+typename ldb<Key,T>::iterator ldb<Key,T>::lower_bound(const key_type &key,
+                                                      const Flag &flags)
 {
-	return {db.get(),END,std::forward<Args>(args)...};
+	return {db.get(),key,flags|LOWER};
 }
 
 
 template<class Key,
          class T>
-template<class... Args>
-typename ldb<Key,T>::iterator ldb<Key,T>::begin(Args&&... args)
-{
-	return {db.get(),FIRST,std::forward<Args>(args)...};
-}
-
-
-template<class Key,
-         class T>
-template<class... Args>
-typename ldb<Key,T>::reverse_iterator ldb<Key,T>::rend(Args&&... args)
-{
-	return {db.get(),FIRST,std::forward<Args>(args)...};
-}
-
-
-template<class Key,
-         class T>
-template<class... Args>
-typename ldb<Key,T>::reverse_iterator ldb<Key,T>::rbegin(Args&&... args)
-{
-	return {db.get(),END,std::forward<Args>(args)...};
-}
-
-
-template<class Key,
-         class T>
-template<class... Args>
-typename ldb<Key,T>::const_iterator ldb<Key,T>::cend(Args&&... args)
+typename ldb<Key,T>::const_iterator ldb<Key,T>::lower_bound(const key_type &key,
+                                                            const Flag &flags)
 const
 {
-	return {db.get(),END,std::forward<Args>(args)...};
+	return {db.get(),key,flags|LOWER};
 }
 
 
 template<class Key,
          class T>
-template<class... Args>
-typename ldb<Key,T>::const_iterator ldb<Key,T>::cbegin(Args&&... args)
-const
+typename ldb<Key,T>::iterator ldb<Key,T>::upper_bound(const key_type &key,
+                                                      const Flag &flags)
 {
-	return {db.get(),FIRST,std::forward<Args>(args)...};
+	return {db.get(),key,flags|UPPER};
 }
 
 
 template<class Key,
          class T>
-template<class... Args>
-typename ldb<Key,T>::const_reverse_iterator ldb<Key,T>::crend(Args&&... args)
+typename ldb<Key,T>::const_iterator ldb<Key,T>::upper_bound(const key_type &key,
+                                                            const Flag &flags)
 const
 {
-	return {db.get(),FIRST,std::forward<Args>(args)...};
+	return {db.get(),key,flags|UPPER};
 }
 
 
 template<class Key,
          class T>
-template<class... Args>
-typename ldb<Key,T>::const_reverse_iterator ldb<Key,T>::crbegin(Args&&... args)
+typename ldb<Key,T>::iterator ldb<Key,T>::end(const Flag &flags)
+{
+	return {db.get(),END,flags};
+}
+
+
+template<class Key,
+         class T>
+typename ldb<Key,T>::iterator ldb<Key,T>::begin(const Flag &flags)
+{
+	return {db.get(),FIRST,flags};
+}
+
+
+template<class Key,
+         class T>
+typename ldb<Key,T>::const_iterator ldb<Key,T>::end(const Flag &flags)
 const
 {
-	return {db.get(),END,std::forward<Args>(args)...};
+	return {db.get(),END,flags};
+}
+
+
+template<class Key,
+         class T>
+typename ldb<Key,T>::const_iterator ldb<Key,T>::begin(const Flag &flags)
+const
+{
+	return {db.get(),FIRST,flags};
+}
+
+
+template<class Key,
+         class T>
+typename ldb<Key,T>::const_iterator ldb<Key,T>::cend(const Flag &flags)
+const
+{
+	return {db.get(),END,flags};
+}
+
+
+template<class Key,
+         class T>
+typename ldb<Key,T>::const_iterator ldb<Key,T>::cbegin(const Flag &flags)
+const
+{
+	return {db.get(),FIRST,flags};
+}
+
+
+template<class Key,
+         class T>
+typename ldb<Key,T>::reverse_iterator ldb<Key,T>::rend(const Flag &flags)
+{
+	return {db.get(),FIRST,flags};
+}
+
+
+template<class Key,
+         class T>
+typename ldb<Key,T>::reverse_iterator ldb<Key,T>::rbegin(const Flag &flags)
+{
+	return {db.get(),END,flags};
+}
+
+
+template<class Key,
+         class T>
+typename ldb<Key,T>::const_reverse_iterator ldb<Key,T>::rend(const Flag &flags)
+const
+{
+	return {db.get(),FIRST,flags};
+}
+
+
+template<class Key,
+         class T>
+typename ldb<Key,T>::const_reverse_iterator ldb<Key,T>::rbegin(const Flag &flags)
+const
+{
+	return {db.get(),END,flags};
+}
+
+
+template<class Key,
+         class T>
+typename ldb<Key,T>::const_reverse_iterator ldb<Key,T>::crend(const Flag &flags)
+const
+{
+	return {db.get(),FIRST,flags};
+}
+
+
+template<class Key,
+         class T>
+typename ldb<Key,T>::const_reverse_iterator ldb<Key,T>::crbegin(const Flag &flags)
+const
+{
+	return {db.get(),END,flags};
 }

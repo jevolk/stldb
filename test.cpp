@@ -32,25 +32,19 @@ int main(int argc, char **argv)
 
 	stldb::ldb<std::string,std::string> db(argv[1]);
 
-	std::cout << db.count("foo") << std::endl;
+	auto bit = db.begin();
+	std::advance(bit,2);
+	for(; bit; ++bit)
+	{
+		std::cout << bit->second << std::endl;
+	}
 
-	auto it = db.find("foo",stldb::FLUSH);
-	auto it2 = db.find("foo");
-
-	std::cout << "it value:  " << it->second << std::endl;
-	std::cout << "it2 value:  " << it2->second << std::endl;
 	std::cout << std::endl;
 
-	it->second = randstr(22);
-
-	std::cout << "it value:  " << it->second << std::endl;
-	std::cout << "it2 value:  " << it2->second << std::endl;
-	std::cout << std::endl;
-
-	it = db.find("foo");
-	it2 = db.find("foo");
-
-	std::cout << "it value:  " << it->second << std::endl;
-	std::cout << "it2 value:  " << it2->second << std::endl;
-	std::cout << std::endl;
+	auto it = db.find("baz",stldb::UPPER);
+	if(!it)
+	{
+		std::cout << "invalid" << std::endl;
+	}
+	else std::cout << it->second << std::endl;
 }
