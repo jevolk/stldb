@@ -200,7 +200,7 @@ void iterator_base::seek(const T &t)
 
 	if(it->key() != t)
 	{
-		if(flags & ~(UPPER|LOWER))
+		if(~flags & (UPPER|LOWER))
 			seek(END);
 	}
 	else if(flags & UPPER)
