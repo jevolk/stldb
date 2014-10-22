@@ -9,34 +9,34 @@ class Slice : public leveldb::Slice
 	iterator_base *base;
 
 	template<class U> typename
-	std::enable_if<std::is_convertible<U,std::string>::value, U>::type
+	std::enable_if<std::is_convertible<U,std::string>::value,U>::type
 	cast() const
 	{
 		return {data(),size()};
 	}
 
 	template<class U> typename
-	std::enable_if<std::is_arithmetic<U>::value, U>::type
+	std::enable_if<std::is_trivial<U>::value,U>::type
 	cast() const
 	{
-		using type_t = typename std::remove_cv<T>::type;
-		return boost::lexical_cast<type_t>(data(),size());
+		assert(sizeof(T) <= size());
+		return *reinterpret_cast<const T *>(data());
 	}
 
   public:
+	using value_type = T;
+
 	operator T() const
 	{
 		return cast<T>();
 	}
 
 	// Note: is_trivially_copyable not available GCC ~4.9
-	template<class U> typename
-	std::enable_if<std::is_trivial<U>::value, Slice>::type
-	&operator=(U&& t)
+	Slice &operator=(T&& t)
 	{
+		const WriteOptions wops(base->flags);
 		const auto &key = base->it->key();
 		const leveldb::Slice val(reinterpret_cast<const char *>(&t),sizeof(t));
-		const WriteOptions wops(base->flags);
 		throw_on_error(base->db->Put(wops,key,val));
 
 		if(wops.flush)
@@ -45,13 +45,35 @@ class Slice : public leveldb::Slice
 		return *this;
 	}
 
-	template<class U> typename
-	std::enable_if<!std::is_trivial<U>() && std::is_convertible<U,std::string>(), Slice>::type
-	&operator=(U&& t)
+	template<class... Args>
+	Slice(iterator_base *const &base = nullptr, Args&&... args):
+	leveldb::Slice(std::forward<Args>(args)...),
+	base(base)
 	{
-		const auto &key = base->it->key();
+
+	}
+};
+
+
+template<>
+class Slice<std::string> : public leveldb::Slice
+{
+	iterator_base *base;
+
+  public:
+	using value_type = std::string;
+
+	operator std::string() const
+	{
+		return {data(),size()};
+	}
+
+	Slice &operator=(const std::string &value)
+	{
 		const WriteOptions wops(base->flags);
-		throw_on_error(base->db->Put(wops,key,leveldb::Slice(t)));
+		const auto &key = base->it->key();
+		const leveldb::Slice val(value);
+		throw_on_error(base->db->Put(wops,key,val));
 
 		if(wops.flush)
 			base->flush();
@@ -60,8 +82,7 @@ class Slice : public leveldb::Slice
 	}
 
 	template<class... Args>
-	Slice(iterator_base *const &base = nullptr,
-	      Args&&... args):
+	Slice(iterator_base *const &base = nullptr, Args&&... args):
 	leveldb::Slice(std::forward<Args>(args)...),
 	base(base)
 	{

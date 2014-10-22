@@ -171,6 +171,18 @@ void ldb<Key,T>::insert(const key_type &key,
                         const Flag &flags)
 {
 	const WriteOptions wopt(flags);
+	const std::string k = boost::lexical_cast<std::string>(key);
+	const std::string v = boost::lexical_cast<std::string>(value);
+	throw_on_error(db->Put(wopt,k,v));
+}
+
+
+template<> inline
+void ldb<std::string,std::string>::insert(const key_type &key,
+                                          const std::string &value,
+                                          const Flag &flags)
+{
+	const WriteOptions wopt(flags);
 	throw_on_error(db->Put(wopt,key,value));
 }
 
@@ -198,6 +210,27 @@ template<class InputIt>
 void ldb<Key,T>::insert(InputIt first,
                         InputIt last,
                         const Flag &flags)
+{
+	leveldb::WriteBatch batch;
+	for(; first != last; ++first)
+	{
+		const auto keyptr = reinterpret_cast<const char *>(&(first->first));
+		const auto valptr = reinterpret_cast<const char *>(&(first->second));
+		const leveldb::Slice key(keyptr,sizeof(first->first));
+		const leveldb::Slice val(valptr,sizeof(first->second));
+		batch.Put(key,val);
+	}
+
+	const WriteOptions wops(flags);
+	throw_on_error(db->Write(wops,&batch));
+}
+
+
+template<>
+template<class InputIt>
+void ldb<std::string,std::string>::insert(InputIt first,
+                                          InputIt last,
+                                          const Flag &flags)
 {
 	leveldb::WriteBatch batch;
 	for(; first != last; ++first)

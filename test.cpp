@@ -42,15 +42,15 @@ int main(int argc, char **argv)
 
 	srand(getpid());
 
-	stldb::ldb<std::string,std::string> db(argv[1]);
+	stldb::ldb<uint64_t,uint64_t> db(argv[1]);
 
 	print_db(db);
 
 
-	std::vector<std::pair<std::string,std::string>> foo(16);
+	std::vector<std::pair<uint64_t,uint64_t>> foo(16);
 	std::generate(foo.begin(),foo.end(),[&]
 	{
-		return std::make_pair(randstr(5),randstr(10));
+		return std::make_pair(rand(),rand());
 	});
 
 	db.insert(foo.begin(),foo.end());
