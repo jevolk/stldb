@@ -29,8 +29,8 @@ WFLAGS = -pedantic                             \
          -Wno-unused-label                     \
          -Wsuggest-attribute=format
 
-CCFLAGS += -std=c++11
-LDFLAGS = -lleveldb
+CCFLAGS += -std=c++11 -Ileveldb/include
+LDFLAGS = -Lleveldb/ -lleveldb
 TARGETS = test
 
 
