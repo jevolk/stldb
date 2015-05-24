@@ -130,7 +130,7 @@ iterator_base iterator_base::operator-(const size_t &n)
 inline
 iterator_base &iterator_base::operator+=(const size_t &n)
 {
-	for(size_t i = 0; i < n; i++)
+	for(size_t i(0); i < n; i++)
 		this->seek(NEXT);
 
 	return *this;
@@ -140,7 +140,7 @@ iterator_base &iterator_base::operator+=(const size_t &n)
 inline
 iterator_base &iterator_base::operator-=(const size_t &n)
 {
-	for(size_t i = 0; i < n; i++)
+	for(size_t i(0); i < n; i++)
 		this->seek(PREV);
 
 	return *this;
@@ -184,7 +184,7 @@ iterator_base &iterator_base::operator--()
 inline
 void iterator_base::flush()
 {
-	const auto old = std::move(it);
+	const auto old(std::move(it));
 	it.reset(db->NewIterator(ReadOptions(flags,snap.get())));
 	seek(old->key());
 }

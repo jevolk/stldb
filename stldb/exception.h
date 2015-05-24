@@ -8,7 +8,7 @@ struct Exception : leveldb::Status,
 {
 	operator std::string() const  { return what(); }
 
-	Exception(const std::string &what = ""):
+	Exception(const std::string &what = {}):
 	          std::runtime_error(what) {}
 
 	Exception(const leveldb::Status &status):

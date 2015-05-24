@@ -35,7 +35,7 @@ class Slice : public leveldb::Slice
 	Slice &operator=(T&& t)
 	{
 		const WriteOptions wops(base->flags);
-		const auto &key = base->it->key();
+		const auto &key(base->it->key());
 		const leveldb::Slice val(reinterpret_cast<const char *>(&t),sizeof(t));
 		throw_on_error(base->db->Put(wops,key,val));
 
@@ -71,7 +71,7 @@ class Slice<std::string> : public leveldb::Slice
 	Slice &operator=(const std::string &value)
 	{
 		const WriteOptions wops(base->flags);
-		const auto &key = base->it->key();
+		const auto &key(base->it->key());
 		const leveldb::Slice val(value);
 		throw_on_error(base->db->Put(wops,key,val));
 

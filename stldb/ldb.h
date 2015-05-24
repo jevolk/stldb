@@ -129,8 +129,8 @@ template<class Key,
 size_t ldb<Key,T>::erase(const key_type &key,
                          const Flag &flags)
 {
-	const auto it = const_cast<const ldb *>(this)->find(key,flags);
-	const bool ret = bool(it);
+	const auto it(const_cast<const ldb *>(this)->find(key,flags));
+	const bool ret(it);
 	erase(it,flags);
 	return ret;
 }
@@ -141,7 +141,7 @@ template<class Key,
 typename ldb<Key,T>::iterator ldb<Key,T>::erase(const_iterator pos,
                                                 const Flag &flags)
 {
-	iterator ret = pos++;
+	iterator ret(pos++);
 	const WriteOptions wops(flags);
 	throw_on_error(db->Delete(wops,pos->first));
 	return ret;
@@ -171,8 +171,8 @@ void ldb<Key,T>::insert(const key_type &key,
                         const Flag &flags)
 {
 	const WriteOptions wopt(flags);
-	const std::string k = boost::lexical_cast<std::string>(key);
-	const std::string v = boost::lexical_cast<std::string>(value);
+	const std::string k(boost::lexical_cast<std::string>(key));
+	const std::string v(boost::lexical_cast<std::string>(value));
 	throw_on_error(db->Put(wopt,k,v));
 }
 
@@ -192,7 +192,7 @@ template<class Key,
 std::pair<typename ldb<Key,T>::iterator,bool> ldb<Key,T>::insert(const value_type &value,
                                                                  const Flag &flags)
 {
-	auto ret = std::make_pair(find(value.first),false);
+	auto ret(std::make_pair(find(value.first),false));
 	if(ret.first)
 		return ret;
 
@@ -214,8 +214,8 @@ void ldb<Key,T>::insert(InputIt first,
 	leveldb::WriteBatch batch;
 	for(; first != last; ++first)
 	{
-		const auto keyptr = reinterpret_cast<const char *>(&(first->first));
-		const auto valptr = reinterpret_cast<const char *>(&(first->second));
+		const auto keyptr(reinterpret_cast<const char *>(&(first->first)));
+		const auto valptr(reinterpret_cast<const char *>(&(first->second)));
 		const leveldb::Slice key(keyptr,sizeof(first->first));
 		const leveldb::Slice val(valptr,sizeof(first->second));
 		batch.Put(key,val);
