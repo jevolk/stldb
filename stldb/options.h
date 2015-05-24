@@ -5,15 +5,16 @@
 
 struct Options : leveldb::Options
 {
-	Options(leveldb::Cache *const cache         = nullptr,
-	        const leveldb::FilterPolicy *fp     = nullptr,
-	        const leveldb::CompressionType ct   = leveldb::kSnappyCompression,
-	        const size_t block_size             = 16384,
-	        const bool create_if_missing        = true,
-	        const size_t write_buffer_size      = 4 * (1024 * 1024),
-	        const size_t max_open_files         = 1024)
+	Options(leveldb::Cache *const &cache              = nullptr,
+	        const leveldb::Comparator *const &cmp     = nullptr,
+	        const leveldb::FilterPolicy *const &fp    = nullptr,
+	        const leveldb::CompressionType &ct        = leveldb::kSnappyCompression,
+	        const size_t &block_size                  = 16384,
+	        const bool &create_if_missing             = true,
+	        const size_t &write_buffer_size           = 4 * (1024 * 1024),
+	        const size_t &max_open_files              = 1024)
 	{
-		//this->comparator         = nullptr;
+		this->comparator         = cmp;
 		this->filter_policy      = fp;
 		this->compression        = ct;
 		this->block_cache        = cache;

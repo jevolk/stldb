@@ -23,6 +23,7 @@
 namespace stldb
 {
 #include "exception.h"
+#include "less.h"
 #include "options.h"
 #include "iterator_base.h"
 #include "slice.h"
