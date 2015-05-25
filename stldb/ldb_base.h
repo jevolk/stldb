@@ -8,10 +8,10 @@ template<class Key,
          class Compare = Less<Key>>
 class ldb
 {
+	Options opts;
 	Compare comp;
 	std::unique_ptr<leveldb::Cache> cache;
 	std::unique_ptr<const leveldb::FilterPolicy> fp;
-	Options opts;
 
   protected:
 	std::unique_ptr<leveldb::DB> db;
@@ -77,27 +77,34 @@ class ldb
 
 	size_t size() const;
 
-	ldb(const std::string &dir,
-	    const size_t &cache_size  = (32UL * 1024UL * 1024UL),
-	    const size_t &bloom_bits  = 0);
+	template<class... CompareArgs>
+	ldb(const std::string &dir,      // Directory of the LevelDB
+	    const Options &opts = {},    // Options structure
+	    CompareArgs&&... comp);      // Direct emplacement of any custom comparator
 };
 
 
 template<class Key,
          class T,
          class Compare>
+template<class... CompareArgs>
 ldb<Key,T,Compare>::ldb(const std::string &dir,
-                        const size_t &cache_size,
-                        const size_t &bloom_bits):
-cache(cache_size? leveldb::NewLRUCache(cache_size) : nullptr),
-fp(bloom_bits? leveldb::NewBloomFilterPolicy(bloom_bits) : nullptr),
-opts(cache.get(),&get_comp(),fp.get(),leveldb::kSnappyCompression),
-db([this,&dir]
+                        const Options &opts,
+                        CompareArgs&&... comp):
+opts   { opts                                                                                    },
+comp   { std::forward<CompareArgs>(comp)...                                                      },
+cache  { this->opts.cache_size? leveldb::NewLRUCache(this->opts.cache_size) : nullptr            },
+fp     { this->opts.bloom_bits? leveldb::NewBloomFilterPolicy(this->opts.bloom_bits) : nullptr   },
+db     { [this,&dir]
 {
+	this->opts.comparator     = &this->comp;
+	this->opts.block_cache    = this->cache.get();
+	this->opts.filter_policy  = this->fp.get();
+
 	leveldb::DB *ret;
-	throw_on_error(leveldb::DB::Open(get_opts(),dir,&ret));
+	throw_on_error(leveldb::DB::Open(this->opts,dir,&ret));
 	return ret;
-}())
+}()}
 {
 
 }

@@ -5,14 +5,43 @@
 
 struct Options : leveldb::Options
 {
-	Options(leveldb::Cache *const &cache              = nullptr,
-	        const leveldb::Comparator *const &cmp     = nullptr,
-	        const leveldb::FilterPolicy *const &fp    = nullptr,
-	        const leveldb::CompressionType &ct        = leveldb::kSnappyCompression,
+	size_t cache_size = 0;
+	size_t bloom_bits = 0;
+
+	// This constructor is available for arguments from the user
+	Options(const size_t &cache_size                  = 32 * 1024 * 1024,
 	        const size_t &block_size                  = 32768,
+	        const size_t &bloom_bits                  = 0,
+	        const size_t &write_size                  = 4 * (1024 * 1024),
+	        const size_t &max_open_files              = 1024,
 	        const bool &create_if_missing             = true,
-	        const size_t &write_buffer_size           = 4 * (1024 * 1024),
-	        const size_t &max_open_files              = 1024)
+	        const leveldb::CompressionType &ct        = leveldb::kSnappyCompression):
+	Options(nullptr,
+	        nullptr,
+	        nullptr,
+	        ct,
+	        cache_size,
+	        block_size,
+	        bloom_bits,
+	        write_size,
+	        max_open_files,
+	        create_if_missing)
+	{
+	}
+
+	// This constructor is available but generally used internally after the one above
+	Options(leveldb::Cache *const &cache,
+	        const leveldb::Comparator *const &cmp,
+	        const leveldb::FilterPolicy *const &fp,
+	        const leveldb::CompressionType &ct,
+	        const size_t &cache_size,
+	        const size_t &block_size,
+	        const size_t &bloom_bits,
+	        const size_t &write_size,
+	        const size_t &max_open_files,
+	        const bool &create_if_missing):
+	cache_size(cache_size),
+	bloom_bits(bloom_bits)
 	{
 		this->comparator         = cmp;
 		this->filter_policy      = fp;
