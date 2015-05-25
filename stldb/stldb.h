@@ -25,6 +25,7 @@ namespace stldb
 {
 	#include "exception.h"
 	#include "less.h"
+	#include "less_string.h"
 	#include "options.h"
 	namespace base
 	{
