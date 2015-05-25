@@ -78,9 +78,9 @@ class ldb
 	size_t size() const;
 
 	template<class... CompareArgs>
-	ldb(const std::string &dir,      // Directory of the LevelDB
-	    const Options &opts = {},    // Options structure
-	    CompareArgs&&... comp);      // Direct emplacement of any custom comparator
+	ldb(const std::string &dir = {},   // Directory of the LevelDB (empty string disables this instance)
+	    const Options &opts = {},      // Options structure
+	    CompareArgs&&... comp);        // Direct emplacement of any custom comparator
 };
 
 
@@ -91,11 +91,11 @@ template<class... CompareArgs>
 ldb<Key,T,Compare>::ldb(const std::string &dir,
                         const Options &opts,
                         CompareArgs&&... comp):
-opts   { opts                                                                                    },
-comp   { std::forward<CompareArgs>(comp)...                                                      },
-cache  { this->opts.cache_size? leveldb::NewLRUCache(this->opts.cache_size) : nullptr            },
-fp     { this->opts.bloom_bits? leveldb::NewBloomFilterPolicy(this->opts.bloom_bits) : nullptr   },
-db     { [this,&dir]
+opts   { opts                                                                                      },
+comp   { std::forward<CompareArgs>(comp)...                                                        },
+cache  { !dir.empty() && opts.cache_size? leveldb::NewLRUCache(opts.cache_size) : nullptr          },
+fp     { !dir.empty() && opts.bloom_bits? leveldb::NewBloomFilterPolicy(opts.bloom_bits) : nullptr },
+db     { dir.empty()? nullptr : [this,&dir]
 {
 	this->opts.comparator     = &this->comp;
 	this->opts.block_cache    = this->cache.get();
