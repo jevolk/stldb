@@ -9,7 +9,7 @@ struct Options : leveldb::Options
 	        const leveldb::Comparator *const &cmp     = nullptr,
 	        const leveldb::FilterPolicy *const &fp    = nullptr,
 	        const leveldb::CompressionType &ct        = leveldb::kSnappyCompression,
-	        const size_t &block_size                  = 16384,
+	        const size_t &block_size                  = 32768,
 	        const bool &create_if_missing             = true,
 	        const size_t &write_buffer_size           = 4 * (1024 * 1024),
 	        const size_t &max_open_files              = 1024)

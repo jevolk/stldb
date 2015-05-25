@@ -25,8 +25,8 @@ template<class Key>
 int Less<Key>::Compare(const leveldb::Slice &a, const leveldb::Slice &b)
 const
 {
-	const Key &ak(*reinterpret_cast<const Key *>(a.data()));
-	const Key &bk(*reinterpret_cast<const Key *>(b.data()));
+	const auto &ak(*reinterpret_cast<const Key *>(a.data()));
+	const auto &bk(*reinterpret_cast<const Key *>(b.data()));
 	return ak < bk?  -1:
 	       bk < ak?   1:
 	                  0;

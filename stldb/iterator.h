@@ -4,7 +4,7 @@
 
 
 template<class T>
-class iterator : public iterator_base,
+class iterator : public base::iterator,
                  public std::iterator<std::bidirectional_iterator_tag,T>
 {
 	mutable T t;
@@ -16,7 +16,7 @@ class iterator : public iterator_base,
 	T &operator*();
 	T *operator->();
 
-	template<class... Args> iterator(Args&&... args): iterator_base(std::forward<Args>(args)...) {}
+	template<class... Args> iterator(Args&&... args): base::iterator(std::forward<Args>(args)...) {}
 };
 
 
@@ -31,12 +31,12 @@ T *iterator<T>::operator->()
 template<class T>
 T &iterator<T>::operator*()
 {
-	const auto *const &base = static_cast<const iterator_base *>(this);
+	const auto &base(static_cast<const base::iterator *>(this));
 
 	t =
 	{
-		{ const_cast<iterator_base *>(base), this->it->key()    },
-		{ const_cast<iterator_base *>(base), this->it->value()  },
+		{ const_cast<base::iterator *>(base), this->it->key()    },
+		{ const_cast<base::iterator *>(base), this->it->value()  },
 	};
 
 	return t;

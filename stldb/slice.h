@@ -6,7 +6,7 @@
 template<class T>
 class Slice : public leveldb::Slice
 {
-	iterator_base *base;
+	base::iterator *base;
 
 	template<class U> typename
 	std::enable_if<std::is_convertible<U,std::string>::value,U>::type
@@ -16,11 +16,11 @@ class Slice : public leveldb::Slice
 	}
 
 	template<class U> typename
-	std::enable_if<std::is_trivial<U>::value,U>::type
+	std::enable_if<!std::is_convertible<U,std::string>(),U>::type
 	cast() const
 	{
-		assert(sizeof(T) <= size());
-		return *reinterpret_cast<const T *>(data());
+		assert(sizeof(U) <= size());
+		return *reinterpret_cast<const U *>(data());
 	}
 
   public:
@@ -31,12 +31,13 @@ class Slice : public leveldb::Slice
 		return cast<T>();
 	}
 
-	// Note: is_trivially_copyable not available GCC ~4.9
-	Slice &operator=(T&& t)
+	Slice &operator=(const T &t)
 	{
-		const WriteOptions wops(base->flags);
+		assert(base != nullptr);                  // trying to write to const_iterator
 		const auto &key(base->it->key());
-		const leveldb::Slice val(reinterpret_cast<const char *>(&t),sizeof(t));
+		const WriteOptions wops(base->flags);
+		const auto &ptr(reinterpret_cast<const char *>(&t));
+		const leveldb::Slice val(ptr,sizeof(t));
 		throw_on_error(base->db->Put(wops,key,val));
 
 		if(wops.flush)
@@ -46,7 +47,7 @@ class Slice : public leveldb::Slice
 	}
 
 	template<class... Args>
-	Slice(iterator_base *const &base = nullptr, Args&&... args):
+	Slice(base::iterator *const &base = nullptr, Args&&... args):
 	leveldb::Slice(std::forward<Args>(args)...),
 	base(base)
 	{
@@ -55,10 +56,59 @@ class Slice : public leveldb::Slice
 };
 
 
+template<class T>
+class Slice<T *> : public leveldb::Slice
+{
+	base::iterator *base;
+
+  public:
+	using value_type = T *;
+
+	operator const T *() const
+	{
+		return reinterpret_cast<const T *>(data());
+	}
+
+	Slice &operator=(const std::pair<const T *, size_t> &t)
+	{
+		using std::get;
+
+		assert(base != nullptr);                  // trying to write to const_iterator
+		const auto &key(base->it->key());
+		const WriteOptions wops(base->flags);
+		const auto &ptr(reinterpret_cast<const char *>(get<0>(t)));
+		const size_t size(get<1>(t) * sizeof(T));
+		const leveldb::Slice val(ptr,size);
+		throw_on_error(base->db->Put(wops,key,val));
+
+		if(wops.flush)
+			base->flush();
+
+		return *this;
+	}
+
+	template<size_t N>
+	Slice &operator=(const T (&t)[N])
+	{
+		return this->operator=(std::make_pair(t,N));
+	}
+
+	template<class... Args>
+	Slice(base::iterator *const &base = nullptr, Args&&... args):
+	leveldb::Slice(std::forward<Args>(args)...),
+	base(base)
+	{
+
+	}
+
+	static_assert(std::is_const<T>::value, "Pointer types are never written to and must be const");
+};
+
+
 template<>
 class Slice<std::string> : public leveldb::Slice
 {
-	iterator_base *base;
+	base::iterator *base;
 
   public:
 	using value_type = std::string;
@@ -70,8 +120,9 @@ class Slice<std::string> : public leveldb::Slice
 
 	Slice &operator=(const std::string &value)
 	{
-		const WriteOptions wops(base->flags);
+		assert(base != nullptr);                  // trying to write to const_iterator
 		const auto &key(base->it->key());
+		const WriteOptions wops(base->flags);
 		const leveldb::Slice val(value);
 		throw_on_error(base->db->Put(wops,key,val));
 
@@ -82,7 +133,7 @@ class Slice<std::string> : public leveldb::Slice
 	}
 
 	template<class... Args>
-	Slice(iterator_base *const &base = nullptr, Args&&... args):
+	Slice(base::iterator *const &base = nullptr, Args&&... args):
 	leveldb::Slice(std::forward<Args>(args)...),
 	base(base)
 	{
@@ -95,6 +146,6 @@ template<class T>
 std::ostream &operator<<(std::ostream &s,
                          const Slice<T> &slice)
 {
-	s << T(slice);
+	s << static_cast<T>(slice);
 	return s;
 }

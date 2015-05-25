@@ -12,55 +12,64 @@ enum Seek
 	END,        // SeekToLast() + Next() - past the end (invalid)
 };
 
-class iterator_base
+class iterator
 {
 	template<class T> friend class Slice;             // Accesses it/db for write-backs to iterator
 
   protected:
 	leveldb::DB *db;
+	const leveldb::Comparator *comp;
 	std::shared_ptr<const leveldb::Snapshot> snap;
 	std::unique_ptr<leveldb::Iterator> it;
 	Flag flags;
 
 	bool valid() const                                { return it->Valid();               }
-	int cmp(const iterator_base &o) const;
+	int cmp(const iterator &o) const;
 
-	template<class T> void seek(const T &t);
 	void seek(const Seek &seek);
+	void seek(const leveldb::Slice &seek);
+	template<class T> void seek(const T &t);
 	void flush();
 
   public:
 	operator bool() const                             { return valid();                   }
 	bool operator!() const                            { return !valid();                  }
-	bool operator==(const iterator_base &o) const     { return cmp(o) == 0;               }
-	bool operator!=(const iterator_base &o) const     { return cmp(o) != 0;               }
-	bool operator<=(const iterator_base &o) const     { return cmp(o) <= 0;               }
-	bool operator>=(const iterator_base &o) const     { return cmp(o) >= 0;               }
-	bool operator<(const iterator_base &o) const      { return cmp(o) < 0;                }
-	bool operator>(const iterator_base &o) const      { return cmp(o) > 0;                }
+	bool operator==(const iterator &o) const          { return cmp(o) == 0;               }
+	bool operator!=(const iterator &o) const          { return cmp(o) != 0;               }
+	bool operator<=(const iterator &o) const          { return cmp(o) <= 0;               }
+	bool operator>=(const iterator &o) const          { return cmp(o) >= 0;               }
+	bool operator<(const iterator &o) const           { return cmp(o) < 0;                }
+	bool operator>(const iterator &o) const           { return cmp(o) > 0;                }
 
-	iterator_base &operator++();
-	iterator_base &operator--();
-	iterator_base operator++(int);
-	iterator_base operator--(int);
+	iterator &operator++();
+	iterator &operator--();
+	iterator operator++(int);
+	iterator operator--(int);
 
-	iterator_base &operator+=(const size_t &n);
-	iterator_base &operator-=(const size_t &n);
-	iterator_base operator+(const size_t &n);
-	iterator_base operator-(const size_t &n);
+	iterator &operator+=(const size_t &n);
+	iterator &operator-=(const size_t &n);
+	iterator operator+(const size_t &n);
+	iterator operator-(const size_t &n);
 
-	template<class Seek> iterator_base(leveldb::DB *const &db, const Seek &seek, const Flag &flags = Flag(0));
-	iterator_base(const iterator_base &other);
-	iterator_base &operator=(const iterator_base &other) &;
-	virtual ~iterator_base() = default;
+	template<class Seek>
+	iterator(leveldb::DB *const &db,
+	         const leveldb::Comparator *const &comp,
+	         const Seek &seek,
+	         const Flag &flags = Flag(0));
+
+	iterator(const iterator &other);
+	iterator &operator=(const iterator &other) &;
+	virtual ~iterator() noexcept = default;
 };
 
 
 template<class Seek>
-iterator_base::iterator_base(leveldb::DB *const &db,
-                             const Seek &seek,
-                             const Flag &flags):
+iterator::iterator(leveldb::DB *const &db,
+                   const leveldb::Comparator *const &comp,
+                   const Seek &seek,
+                   const Flag &flags):
 db(db),
+comp(comp),
 snap
 ({
 	flags & SNAPSHOT? db->GetSnapshot() : nullptr, [db]
@@ -78,8 +87,9 @@ flags(flags)
 
 
 inline
-iterator_base::iterator_base(const iterator_base &o):
+iterator::iterator(const iterator &o):
 db(o.db),
+comp(o.comp),
 snap(o.snap),
 it(db->NewIterator(ReadOptions(o.flags,this->snap.get()))),
 flags(o.flags)
@@ -92,10 +102,11 @@ flags(o.flags)
 
 
 inline
-iterator_base &iterator_base::operator=(const iterator_base &o)
+iterator &iterator::operator=(const iterator &o)
 &
 {
 	db = o.db;
+	comp = o.comp;
 	snap = o.snap;
 	flags = o.flags;
 	it.reset(db->NewIterator(ReadOptions(o.flags,this->snap.get())));
@@ -110,7 +121,7 @@ iterator_base &iterator_base::operator=(const iterator_base &o)
 
 
 inline
-iterator_base iterator_base::operator+(const size_t &n)
+iterator iterator::operator+(const size_t &n)
 {
 	auto ret(*this);
 	ret += n;
@@ -119,7 +130,7 @@ iterator_base iterator_base::operator+(const size_t &n)
 
 
 inline
-iterator_base iterator_base::operator-(const size_t &n)
+iterator iterator::operator-(const size_t &n)
 {
 	auto ret(*this);
 	ret -= n;
@@ -128,7 +139,7 @@ iterator_base iterator_base::operator-(const size_t &n)
 
 
 inline
-iterator_base &iterator_base::operator+=(const size_t &n)
+iterator &iterator::operator+=(const size_t &n)
 {
 	for(size_t i(0); i < n; i++)
 		this->seek(NEXT);
@@ -138,7 +149,7 @@ iterator_base &iterator_base::operator+=(const size_t &n)
 
 
 inline
-iterator_base &iterator_base::operator-=(const size_t &n)
+iterator &iterator::operator-=(const size_t &n)
 {
 	for(size_t i(0); i < n; i++)
 		this->seek(PREV);
@@ -148,7 +159,7 @@ iterator_base &iterator_base::operator-=(const size_t &n)
 
 
 inline
-iterator_base iterator_base::operator++(int)
+iterator iterator::operator++(int)
 {
 	auto ret(*this);
 	++(*this);
@@ -157,7 +168,7 @@ iterator_base iterator_base::operator++(int)
 
 
 inline
-iterator_base iterator_base::operator--(int)
+iterator iterator::operator--(int)
 {
 	auto ret(*this);
 	--(*this);
@@ -166,7 +177,7 @@ iterator_base iterator_base::operator--(int)
 
 
 inline
-iterator_base &iterator_base::operator++()
+iterator &iterator::operator++()
 {
 	this->seek(NEXT);
 	return *this;
@@ -174,7 +185,7 @@ iterator_base &iterator_base::operator++()
 
 
 inline
-iterator_base &iterator_base::operator--()
+iterator &iterator::operator--()
 {
 	this->seek(PREV);
 	return *this;
@@ -182,7 +193,7 @@ iterator_base &iterator_base::operator--()
 
 
 inline
-void iterator_base::flush()
+void iterator::flush()
 {
 	const auto old(std::move(it));
 	it.reset(db->NewIterator(ReadOptions(flags,snap.get())));
@@ -191,7 +202,16 @@ void iterator_base::flush()
 
 
 template<class T>
-void iterator_base::seek(const T &t)
+void iterator::seek(const T &t)
+{
+	const auto &ptr(reinterpret_cast<const char *>(&t));
+	const leveldb::Slice s(ptr,sizeof(T));
+	return seek(s);
+}
+
+
+inline
+void iterator::seek(const leveldb::Slice &t)
 {
 	it->Seek(t);
 
@@ -200,7 +220,7 @@ void iterator_base::seek(const T &t)
 
 	if(it->key() != t)
 	{
-		if(~flags & (UPPER|LOWER))
+		if(!(flags & (UPPER|LOWER)))
 			seek(END);
 	}
 	else if(flags & UPPER)
@@ -209,7 +229,7 @@ void iterator_base::seek(const T &t)
 
 
 inline
-void iterator_base::seek(const Seek &s)
+void iterator::seek(const Seek &s)
 {
 	switch(s)
 	{
@@ -227,11 +247,11 @@ void iterator_base::seek(const Seek &s)
 
 
 inline
-int iterator_base::cmp(const iterator_base &o)
+int iterator::cmp(const iterator &o)
 const
 {
-	return !valid() && !o.valid()?  0:                               // equally invalid
-	       !o.valid()?              -1:                              // valid always less than invalid
-	       !valid()?                1:                               // invalid always greater than valid
-	                                it->key().compare(o.it->key());  // both valid, leveldb's turn
+	return !valid() && !o.valid()?  0:                                     // equally invalid
+	       !o.valid()?             -1:                                     // valid always less than invalid
+	       !valid()?                1:                                     // invalid always greater than valid
+	                                comp->Compare(it->key(),o.it->key());  // both valid, compare key data
 }

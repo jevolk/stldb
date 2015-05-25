@@ -4,7 +4,7 @@
 
 
 template<class T>
-class const_iterator : public iterator_base,
+class const_iterator : public base::iterator,
                        public std::iterator<std::bidirectional_iterator_tag,T>
 {
 	mutable T t;
@@ -24,7 +24,7 @@ template<class T>
 template<class... Args>
 const_iterator<T>::const_iterator(const leveldb::DB *const &db,
                                   Args&&... args):
-iterator_base(const_cast<leveldb::DB *>(db),std::forward<Args>(args)...)
+base::iterator(const_cast<leveldb::DB *>(db),std::forward<Args>(args)...)
 {
 
 }

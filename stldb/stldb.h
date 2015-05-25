@@ -16,20 +16,28 @@
 // leveldb
 #include <leveldb/filter_policy.h>
 #include <leveldb/write_batch.h>
+#include <leveldb/comparator.h>
 #include <leveldb/cache.h>
 #include <leveldb/db.h>
 
 // stldb
 namespace stldb
 {
-#include "exception.h"
-#include "less.h"
-#include "options.h"
-#include "iterator_base.h"
-#include "slice.h"
-#include "const_iterator.h"
-#include "iterator.h"
-#include "ldb.h"
+	#include "exception.h"
+	#include "less.h"
+	#include "options.h"
+	namespace base
+	{
+		#include "iterator_base.h"
+		#include "slice.h"
+	}
+	#include "const_iterator.h"
+	#include "iterator.h"
+	namespace base
+	{
+		#include "ldb_base.h"
+	}
+	#include "ldb.h"
 }
 
 
