@@ -64,6 +64,11 @@ class Slice<T *> : public leveldb::Slice
   public:
 	using value_type = T *;
 
+	size_t size() const
+	{
+		return leveldb::Slice::size() / sizeof(T);
+	}
+
 	operator const T *() const
 	{
 		return reinterpret_cast<const T *>(data());
