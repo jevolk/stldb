@@ -19,9 +19,9 @@ struct ldb<Key,T *,Compare> : base::ldb<Key,T *,Compare>
 {
 	template<size_t N> using array_type = std::array<typename std::remove_const<T>::type,N>;
 
-	void insert(const Key &key, const std::pair<const T *, size_t> &val, const Flag &flags = Flag(0));
-	template<size_t N> void insert(const Key &key, const array_type<N> &val, const Flag &flags = Flag(0));
-	template<size_t N> void insert(const Key &key, const T (&val)[N], const Flag &flags = Flag(0));
+	void insert(const Key &key, const std::pair<const T *, size_t> &val, const Flag &flags = NONE);
+	template<size_t N> void insert(const Key &key, const array_type<N> &val, const Flag &flags = NONE);
+	template<size_t N> void insert(const Key &key, const T (&val)[N], const Flag &flags = NONE);
 
 	template<class... Args> ldb(Args&&... args): base::ldb<Key,T *,Compare>(std::forward<Args>(args)...) {}
 };

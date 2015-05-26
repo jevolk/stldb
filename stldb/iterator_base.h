@@ -51,7 +51,7 @@ class iterator
 	iterator(leveldb::DB *const &db,
 	         const leveldb::Comparator *const &comp,
 	         const Seek &seek,
-	         const Flag &flags = Flag(0));
+	         const Flag &flags = NONE);
 
 	iterator(const iterator &other);
 	iterator &operator=(const iterator &other) &;

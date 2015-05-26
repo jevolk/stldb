@@ -40,40 +40,40 @@ class ldb
 	operator const leveldb::DB &() const    { return *get_ldb();                                     }
 	operator leveldb::DB &()                { return *get_ldb();                                     }
 
-	const_reverse_iterator crbegin(const Flag &flags = Flag(0)) const;
-	const_reverse_iterator crend(const Flag &flags = Flag(0)) const;
-	const_reverse_iterator rbegin(const Flag &flags = Flag(0)) const;
-	const_reverse_iterator rend(const Flag &flags = Flag(0)) const;
-	reverse_iterator rbegin(const Flag &flags = Flag(0));
-	reverse_iterator rend(const Flag &flags = Flag(0));
+	const_reverse_iterator crbegin(const Flag &flags = NONE) const;
+	const_reverse_iterator crend(const Flag &flags = NONE) const;
+	const_reverse_iterator rbegin(const Flag &flags = NONE) const;
+	const_reverse_iterator rend(const Flag &flags = NONE) const;
+	reverse_iterator rbegin(const Flag &flags = NONE);
+	reverse_iterator rend(const Flag &flags = NONE);
 
-	const_iterator cbegin(const Flag &flags = Flag(0)) const;
-	const_iterator cend(const Flag &flags = Flag(0)) const;
-	const_iterator begin(const Flag &flags = Flag(0)) const;
-	const_iterator end(const Flag &flags = Flag(0)) const;
-	iterator begin(const Flag &flags = Flag(0));
-	iterator end(const Flag &flags = Flag(0));
+	const_iterator cbegin(const Flag &flags = NONE) const;
+	const_iterator cend(const Flag &flags = NONE) const;
+	const_iterator begin(const Flag &flags = NONE) const;
+	const_iterator end(const Flag &flags = NONE) const;
+	iterator begin(const Flag &flags = NONE);
+	iterator end(const Flag &flags = NONE);
 
-	const_iterator upper_bound(const key_type &key, const Flag &flags = Flag(0)) const;
-	iterator upper_bound(const key_type &key, const Flag &flags = Flag(0));
+	const_iterator upper_bound(const key_type &key, const Flag &flags = NONE) const;
+	iterator upper_bound(const key_type &key, const Flag &flags = NONE);
 
-	const_iterator lower_bound(const key_type &key, const Flag &flags = Flag(0)) const;
-	iterator lower_bound(const key_type &key, const Flag &flags = Flag(0));
+	const_iterator lower_bound(const key_type &key, const Flag &flags = NONE) const;
+	iterator lower_bound(const key_type &key, const Flag &flags = NONE);
 
-	const_iterator cfind(const key_type &key, const Flag &flags = Flag(0)) const;
-	const_iterator find(const key_type &key, const Flag &flags = Flag(0)) const;
-	iterator find(const key_type &key, const Flag &flags = Flag(0));
+	const_iterator cfind(const key_type &key, const Flag &flags = NONE) const;
+	const_iterator find(const key_type &key, const Flag &flags = NONE) const;
+	iterator find(const key_type &key, const Flag &flags = NONE);
 
-	template<class InputIt> void insert(InputIt first, InputIt last, const Flag &flags = Flag(0));
-	std::pair<iterator,bool> insert(const value_type &value, const Flag &flags = Flag(0));
-	void insert(const key_type &key, const mapped_type &value, const Flag &flags = Flag(0));
+	template<class InputIt> void insert(InputIt first, InputIt last, const Flag &flags = NONE);
+	std::pair<iterator,bool> insert(const value_type &value, const Flag &flags = NONE);
+	void insert(const key_type &key, const mapped_type &value, const Flag &flags = NONE);
 
-	iterator erase(const_iterator first, const_iterator last, const Flag &flags = Flag(0));
-	iterator erase(const_iterator pos, const Flag &flags = Flag(0));
-	size_t erase(const key_type &key, const Flag &flags = Flag(0));
+	iterator erase(const_iterator first, const_iterator last, const Flag &flags = NONE);
+	iterator erase(const_iterator pos, const Flag &flags = NONE);
+	size_t erase(const key_type &key, const Flag &flags = NONE);
 
-	size_t count(const key_type &key, const Flag &flags = Flag(0)) const;
-	size_t count(const key_type &key, const Flag &flags = Flag(0));
+	size_t count(const key_type &key, const Flag &flags = NONE) const;
+	size_t count(const key_type &key, const Flag &flags = NONE);
 
 	size_t size() const;
 
@@ -309,7 +309,7 @@ typename ldb<Key,T,Compare>::iterator
 ldb<Key,T,Compare>::lower_bound(const key_type &key,
                                 const Flag &flags)
 {
-	return {get_ldb(),&get_comp(),key,Flag(flags|LOWER)};
+	return {get_ldb(),&get_comp(),key,flags|LOWER};
 }
 
 
@@ -321,7 +321,7 @@ ldb<Key,T,Compare>::lower_bound(const key_type &key,
                                 const Flag &flags)
 const
 {
-	return {get_ldb(),&get_comp(),key,Flag(flags|LOWER)};
+	return {get_ldb(),&get_comp(),key,flags|LOWER};
 }
 
 
@@ -332,7 +332,7 @@ typename ldb<Key,T,Compare>::iterator
 ldb<Key,T,Compare>::upper_bound(const key_type &key,
                                 const Flag &flags)
 {
-	return {get_ldb(),&get_comp(),key,Flag(flags|UPPER)};
+	return {get_ldb(),&get_comp(),key,flags|UPPER};
 }
 
 
@@ -344,7 +344,7 @@ ldb<Key,T,Compare>::upper_bound(const key_type &key,
                                 const Flag &flags)
 const
 {
-	return {get_ldb(),&get_comp(),key,Flag(flags|UPPER)};
+	return {get_ldb(),&get_comp(),key,flags|UPPER};
 }
 
 
