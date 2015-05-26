@@ -8,27 +8,13 @@ class Slice : public leveldb::Slice
 {
 	base::iterator *base;
 
-	template<class U> typename
-	std::enable_if<std::is_convertible<U,std::string>::value,U>::type
-	cast() const
-	{
-		return {data(),size()};
-	}
-
-	template<class U> typename
-	std::enable_if<!std::is_convertible<U,std::string>(),U>::type
-	cast() const
-	{
-		assert(sizeof(U) <= size());
-		return *reinterpret_cast<const U *>(data());
-	}
-
   public:
 	using value_type = T;
 
-	operator T() const
+	operator const T &() const
 	{
-		return cast<T>();
+		assert(sizeof(T) <= size());
+		return *reinterpret_cast<const T *>(data());
 	}
 
 	Slice &operator=(const T &t)
@@ -51,7 +37,6 @@ class Slice : public leveldb::Slice
 	leveldb::Slice(std::forward<Args>(args)...),
 	base(base)
 	{
-
 	}
 };
 
@@ -103,7 +88,6 @@ class Slice<T *> : public leveldb::Slice
 	leveldb::Slice(std::forward<Args>(args)...),
 	base(base)
 	{
-
 	}
 
 	static_assert(std::is_const<T>::value, "Pointer types are never written to and must be const");
@@ -142,7 +126,6 @@ class Slice<std::string> : public leveldb::Slice
 	leveldb::Slice(std::forward<Args>(args)...),
 	base(base)
 	{
-
 	}
 };
 

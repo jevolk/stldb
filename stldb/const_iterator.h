@@ -5,16 +5,23 @@
 
 template<class T>
 class const_iterator : public base::iterator,
-                       public std::iterator<std::bidirectional_iterator_tag,T>
+                       public std::iterator<std::bidirectional_iterator_tag, T>
 {
 	mutable T t;
 
   public:
 	const T &operator*() const;
 	const T *operator->() const;
-
 	T &operator*();
 	T *operator->();
+
+	const_iterator operator+(const size_t &n) const;
+	const_iterator operator-(const size_t &n) const;
+
+	using base::iterator::operator++;
+	using base::iterator::operator--;
+	const_iterator operator++(int);
+	const_iterator operator--(int);
 
 	template<class... Args> const_iterator(const leveldb::DB *const &db, Args&&... args);
 };
@@ -26,7 +33,44 @@ const_iterator<T>::const_iterator(const leveldb::DB *const &db,
                                   Args&&... args):
 base::iterator(const_cast<leveldb::DB *>(db),std::forward<Args>(args)...)
 {
+}
 
+
+template<class T>
+const_iterator<T> const_iterator<T>::operator--(int)
+{
+	const auto ret(*this);
+	--(*this);
+	return ret;
+}
+
+
+template<class T>
+const_iterator<T> const_iterator<T>::operator++(int)
+{
+	const auto ret(*this);
+	++(*this);
+	return ret;
+}
+
+
+template<class T>
+const_iterator<T> const_iterator<T>::operator-(const size_t &n)
+const
+{
+	auto ret(*this);
+	ret -= n;
+	return ret;
+}
+
+
+template<class T>
+const_iterator<T> const_iterator<T>::operator+(const size_t &n)
+const
+{
+	auto ret(*this);
+	ret += n;
+	return ret;
 }
 
 
@@ -43,8 +87,8 @@ T &const_iterator<T>::operator*()
 {
 	t =
 	{
-		{ nullptr, this->it->key()   },
-		{ nullptr, this->it->value() },
+		{ nullptr, it->key()   },
+		{ nullptr, it->value() },
 	};
 
 	return t;
@@ -66,8 +110,8 @@ const
 {
 	t =
 	{
-		{ nullptr, this->it->key()   },
-		{ nullptr, this->it->value() },
+		{ nullptr, it->key()   },
+		{ nullptr, it->value() },
 	};
 
 	return t;

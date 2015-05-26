@@ -41,15 +41,11 @@ class iterator
 	bool operator<(const iterator &o) const           { return cmp(o) < 0;                }
 	bool operator>(const iterator &o) const           { return cmp(o) > 0;                }
 
-	iterator &operator++();
-	iterator &operator--();
-	iterator operator++(int);
-	iterator operator--(int);
-
 	iterator &operator+=(const size_t &n);
 	iterator &operator-=(const size_t &n);
-	iterator operator+(const size_t &n);
-	iterator operator-(const size_t &n);
+
+	iterator &operator++();
+	iterator &operator--();
 
 	template<class Seek>
 	iterator(leveldb::DB *const &db,
@@ -72,8 +68,8 @@ db(db),
 comp(comp),
 snap
 ({
-	flags & SNAPSHOT? db->GetSnapshot() : nullptr, [db]
-	(const leveldb::Snapshot *const &s)
+	flags & SNAPSHOT? db->GetSnapshot() : nullptr,
+	[db](const leveldb::Snapshot *const &s)
 	{
 		if(s)
 			db->ReleaseSnapshot(s);
@@ -121,29 +117,17 @@ iterator &iterator::operator=(const iterator &o)
 
 
 inline
-iterator iterator::operator+(const size_t &n)
+iterator &iterator::operator--()
 {
-	auto ret(*this);
-	ret += n;
-	return ret;
+	seek(PREV);
+	return *this;
 }
 
 
 inline
-iterator iterator::operator-(const size_t &n)
+iterator &iterator::operator++()
 {
-	auto ret(*this);
-	ret -= n;
-	return ret;
-}
-
-
-inline
-iterator &iterator::operator+=(const size_t &n)
-{
-	for(size_t i(0); i < n; i++)
-		this->seek(NEXT);
-
+	seek(NEXT);
 	return *this;
 }
 
@@ -152,42 +136,18 @@ inline
 iterator &iterator::operator-=(const size_t &n)
 {
 	for(size_t i(0); i < n; i++)
-		this->seek(PREV);
+		seek(PREV);
 
 	return *this;
 }
 
 
 inline
-iterator iterator::operator++(int)
+iterator &iterator::operator+=(const size_t &n)
 {
-	auto ret(*this);
-	++(*this);
-	return ret;
-}
+	for(size_t i(0); i < n; i++)
+		seek(NEXT);
 
-
-inline
-iterator iterator::operator--(int)
-{
-	auto ret(*this);
-	--(*this);
-	return ret;
-}
-
-
-inline
-iterator &iterator::operator++()
-{
-	this->seek(NEXT);
-	return *this;
-}
-
-
-inline
-iterator &iterator::operator--()
-{
-	this->seek(PREV);
 	return *this;
 }
 
