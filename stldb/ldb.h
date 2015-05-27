@@ -22,6 +22,7 @@ struct ldb<Key,T *,Compare> : base::ldb<Key,T *,Compare>
 	void insert(const Key &key, const std::pair<const T *, size_t> &val, const Flag &flags = NONE);
 	template<size_t N> void insert(const Key &key, const array_type<N> &val, const Flag &flags = NONE);
 	template<size_t N> void insert(const Key &key, const T (&val)[N], const Flag &flags = NONE);
+	void insert(const Key &key, const T &val, const Flag &flags = NONE);
 
 	template<class... Args> ldb(Args&&... args): base::ldb<Key,T *,Compare>(std::forward<Args>(args)...) {}
 };
@@ -31,12 +32,11 @@ struct ldb<Key,T *,Compare> : base::ldb<Key,T *,Compare>
 template<class Key,
          class T,
          class Compare>
-template<size_t N>
 void ldb<Key,T *,Compare>::insert(const Key &key,
-                                  const array_type<N> &value,
+                                  const T &val,
                                   const Flag &flags)
 {
-	insert(key,std::make_pair(value.data(),value.size()),flags);
+	insert(key,std::make_pair(&val,1),flags);
 }
 
 
@@ -49,6 +49,18 @@ void ldb<Key,T *,Compare>::insert(const Key &key,
                                   const Flag &flags)
 {
 	insert(key,std::make_pair(value,N),flags);
+}
+
+
+template<class Key,
+         class T,
+         class Compare>
+template<size_t N>
+void ldb<Key,T *,Compare>::insert(const Key &key,
+                                  const array_type<N> &value,
+                                  const Flag &flags)
+{
+	insert(key,std::make_pair(value.data(),value.size()),flags);
 }
 
 
