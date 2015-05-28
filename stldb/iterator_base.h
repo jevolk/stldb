@@ -7,8 +7,8 @@ enum Seek
 {
 	NEXT,       // Next() - next element
 	PREV,       // Prev() - previous element
-	FIRST,      // SeekToFirst() - first element
-	LAST,       // SeekToLast() - last element
+	FRONT,      // SeekToFirst() - first element
+	BACK,       // SeekToLast() - last element
 	END,        // SeekToLast() + Next() - past the end (invalid)
 };
 
@@ -195,11 +195,11 @@ void iterator::seek(const Seek &s)
 	{
 		case NEXT:     it->Next();         break;
 		case PREV:     it->Prev();         break;
-		case FIRST:    it->SeekToFirst();  break;
-		case LAST:     it->SeekToLast();   break;
+		case FRONT:    it->SeekToFirst();  break;
+		case BACK:     it->SeekToLast();   break;
 		case END:
 		default:
-			seek(LAST);
+			seek(BACK);
 			if(valid())
 				seek(NEXT);
 	};

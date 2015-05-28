@@ -364,7 +364,7 @@ template<class Key,
 typename ldb<Key,T,Compare>::iterator
 ldb<Key,T,Compare>::begin(const Flag &flags)
 {
-	return {get_ldb(),&get_comp(),FIRST,flags};
+	return {get_ldb(),&get_comp(),FRONT,flags};
 }
 
 
@@ -386,7 +386,7 @@ typename ldb<Key,T,Compare>::const_iterator
 ldb<Key,T,Compare>::begin(const Flag &flags)
 const
 {
-	return {get_ldb(),&get_comp(),FIRST,flags};
+	return {get_ldb(),&get_comp(),FRONT,flags};
 }
 
 
@@ -408,7 +408,7 @@ typename ldb<Key,T,Compare>::const_iterator
 ldb<Key,T,Compare>::cbegin(const Flag &flags)
 const
 {
-	return {get_ldb(),&get_comp(),FIRST,flags};
+	return {get_ldb(),&get_comp(),FRONT,flags};
 }
 
 
@@ -418,7 +418,7 @@ template<class Key,
 typename ldb<Key,T,Compare>::reverse_iterator
 ldb<Key,T,Compare>::rend(const Flag &flags)
 {
-	return reverse_iterator {{get_ldb(),&get_comp(),FIRST,flags}};
+	return reverse_iterator {{get_ldb(),&get_comp(),FRONT,flags}};
 }
 
 
@@ -428,7 +428,7 @@ template<class Key,
 typename ldb<Key,T,Compare>::reverse_iterator
 ldb<Key,T,Compare>::rbegin(const Flag &flags)
 {
-	return reverse_iterator {{get_ldb(),&get_comp(),LAST,flags}};
+	return reverse_iterator {{get_ldb(),&get_comp(),BACK,flags}};
 }
 
 
@@ -439,7 +439,7 @@ typename ldb<Key,T,Compare>::const_reverse_iterator
 ldb<Key,T,Compare>::rend(const Flag &flags)
 const
 {
-	return const_reverse_iterator {{get_ldb(),&get_comp(),FIRST,flags}};
+	return const_reverse_iterator {{get_ldb(),&get_comp(),FRONT,flags}};
 }
 
 
@@ -450,7 +450,7 @@ typename ldb<Key,T,Compare>::const_reverse_iterator
 ldb<Key,T,Compare>::rbegin(const Flag &flags)
 const
 {
-	return const_reverse_iterator {{get_ldb(),&get_comp(),LAST,flags}};
+	return const_reverse_iterator {{get_ldb(),&get_comp(),BACK,flags}};
 }
 
 
@@ -461,7 +461,7 @@ typename ldb<Key,T,Compare>::const_reverse_iterator
 ldb<Key,T,Compare>::crend(const Flag &flags)
 const
 {
-	return const_reverse_iterator {{get_ldb(),&get_comp(),FIRST,flags}};
+	return const_reverse_iterator {{get_ldb(),&get_comp(),FRONT,flags}};
 }
 
 
@@ -472,5 +472,5 @@ typename ldb<Key,T,Compare>::const_reverse_iterator
 ldb<Key,T,Compare>::crbegin(const Flag &flags)
 const
 {
-	return const_reverse_iterator {{get_ldb(),&get_comp(),LAST,flags}};
+	return const_reverse_iterator {{get_ldb(),&get_comp(),BACK,flags}};
 }
