@@ -21,7 +21,7 @@ class ldb
 	using mapped_type                       = T;
 	using value_type                        = std::pair<Slice<const key_type>, Slice<mapped_type>>;
 	using size_type                         = std::size_t;
-	using difference_type                   = size_t;
+	using difference_type                   = size_type;
 	using key_compare                       = Compare;
 	using reference                         = value_type &;
 	using const_reference                   = const value_type &;
@@ -240,8 +240,8 @@ void ldb<Key,T,Compare>::insert(InputIt first,
 	leveldb::WriteBatch batch;
 	for(; first != last; ++first)
 	{
-		const auto keyptr(reinterpret_cast<const char *>(&(first->first)));
-		const auto valptr(reinterpret_cast<const char *>(&(first->second)));
+		const auto keyptr(reinterpret_cast<const char *>(&first->first));
+		const auto valptr(reinterpret_cast<const char *>(&first->second));
 		const leveldb::Slice key(keyptr,sizeof(first->first));
 		const leveldb::Slice val(valptr,sizeof(first->second));
 		batch.Put(key,val);
