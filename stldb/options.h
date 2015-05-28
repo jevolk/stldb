@@ -74,6 +74,6 @@ struct ReadOptions : leveldb::ReadOptions
 	{
 		this->verify_checksums  = flags & Flag::VERIFY;
 		this->fill_cache        = flags & Flag::CACHE;
-		this->snapshot          = (flags & Flag::SNAPSHOT)? snap : nullptr;
+		this->snapshot          = snap;
 	}
 };

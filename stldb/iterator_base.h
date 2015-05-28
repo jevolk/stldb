@@ -53,8 +53,10 @@ class iterator
 	         const Seek &seek,
 	         const Flag &flags = NONE);
 
+	iterator(iterator &&other) = default;
 	iterator(const iterator &other);
 	iterator &operator=(const iterator &other) &;
+	iterator &operator=(iterator &&other) & = default;
 	virtual ~iterator() noexcept = default;
 };
 
@@ -66,14 +68,11 @@ iterator::iterator(leveldb::DB *const &db,
                    const Flag &flags):
 db(db),
 comp(comp),
-snap
-({
-	flags & SNAPSHOT? db->GetSnapshot() : nullptr,
-	[db](const leveldb::Snapshot *const &s)
-	{
-		if(s)
-			db->ReleaseSnapshot(s);
-	}
+snap(db->GetSnapshot(),[db]
+(const leveldb::Snapshot *const &s)
+{
+	if(s)
+		db->ReleaseSnapshot(s);
 }),
 it(db->NewIterator(ReadOptions(flags,this->snap.get()))),
 flags(flags)
@@ -104,8 +103,8 @@ iterator &iterator::operator=(const iterator &o)
 	db = o.db;
 	comp = o.comp;
 	snap = o.snap;
-	flags = o.flags;
 	it.reset(db->NewIterator(ReadOptions(o.flags,this->snap.get())));
+	flags = o.flags;
 
 	if(o.valid())
 		it->Seek(o.it->key());
