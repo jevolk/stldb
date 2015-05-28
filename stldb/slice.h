@@ -42,7 +42,7 @@ class Slice : public leveldb::Slice
 
 
 template<class T>
-class Slice<T *> : public leveldb::Slice
+class Slice<T[]> : public leveldb::Slice
 {
 	base::iterator *base;
 
@@ -135,5 +135,14 @@ std::ostream &operator<<(std::ostream &s,
                          const Slice<T> &slice)
 {
 	s << static_cast<T>(slice);
+	return s;
+}
+
+
+template<class T>
+std::ostream &operator<<(std::ostream &s,
+                         const Slice<T[]> &slice)
+{
+	s << static_cast<T *>(slice);
 	return s;
 }

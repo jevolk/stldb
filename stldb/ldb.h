@@ -15,7 +15,7 @@ struct ldb : base::ldb<Key,T,Compare>
 template<class Key,
          class T,
          class Compare>
-struct ldb<Key,T *,Compare> : base::ldb<Key,T *,Compare>
+struct ldb<Key,T[],Compare> : base::ldb<Key,T[],Compare>
 {
 	template<size_t N> using array_type = std::array<typename std::remove_const<T>::type,N>;
 
@@ -24,7 +24,7 @@ struct ldb<Key,T *,Compare> : base::ldb<Key,T *,Compare>
 	template<size_t N> void insert(const Key &key, const T (&val)[N], const Flag &flags = NONE);
 	void insert(const Key &key, const T &val, const Flag &flags = NONE);
 
-	template<class... Args> ldb(Args&&... args): base::ldb<Key,T *,Compare>(std::forward<Args>(args)...) {}
+	template<class... Args> ldb(Args&&... args): base::ldb<Key,T[],Compare>(std::forward<Args>(args)...) {}
 };
 
 
@@ -32,7 +32,7 @@ struct ldb<Key,T *,Compare> : base::ldb<Key,T *,Compare>
 template<class Key,
          class T,
          class Compare>
-void ldb<Key,T *,Compare>::insert(const Key &key,
+void ldb<Key,T[],Compare>::insert(const Key &key,
                                   const T &val,
                                   const Flag &flags)
 {
@@ -44,7 +44,7 @@ template<class Key,
          class T,
          class Compare>
 template<size_t N>
-void ldb<Key,T *,Compare>::insert(const Key &key,
+void ldb<Key,T[],Compare>::insert(const Key &key,
                                   const T (&value)[N],
                                   const Flag &flags)
 {
@@ -56,7 +56,7 @@ template<class Key,
          class T,
          class Compare>
 template<size_t N>
-void ldb<Key,T *,Compare>::insert(const Key &key,
+void ldb<Key,T[],Compare>::insert(const Key &key,
                                   const array_type<N> &value,
                                   const Flag &flags)
 {
@@ -67,7 +67,7 @@ void ldb<Key,T *,Compare>::insert(const Key &key,
 template<class Key,
          class T,
          class Compare>
-void ldb<Key,T *,Compare>::insert(const Key &key,
+void ldb<Key,T[],Compare>::insert(const Key &key,
                                   const std::pair<const T *, size_t> &value,
                                   const Flag &flags)
 {
