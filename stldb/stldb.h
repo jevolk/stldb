@@ -8,6 +8,7 @@
 
 
 // std
+#include <memory>
 #include <type_traits>
 
 // boost

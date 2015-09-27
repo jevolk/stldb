@@ -2,6 +2,7 @@
  * PUBLIC DOMAIN 2014 (C) `git blame test.cpp | cut -d" " -f3 | sed s/^\(//`
  */
 
+#include <iostream>
 
 #include "stldb/stldb.h"
 
